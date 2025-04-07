@@ -3,7 +3,6 @@ async function SDImageParser(img) {
   window.SDImageParserSha256Info = '';
   window.SDImageParserNaiSourceInfo = '';
   window.SDImageParserSoftwareInfo = '';
-  window.SDImageParserRawOutput = '';
 
   const res = await fetch(img.src);
   const blob = await res.blob();
@@ -75,7 +74,6 @@ async function SDImageParser(img) {
     }
   }
 
-  window.SDImageParserRawOutput = output;
   return output;
 }
 
