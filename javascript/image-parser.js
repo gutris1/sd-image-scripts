@@ -276,7 +276,7 @@ async function SDImageParserFetchModelOutput(i) {
 }
 
 async function SDImageParserFetchingModels(n, h, isTHat = false) {
-  const nonLink = `<span class='sd-image-parser-link'>${n}${isTHat ? '' : `: ${h}`}</span>`;
+  const nonLink = `<span class='sd-image-parser-nonlink'>${n}${isTHat ? '' : `: ${h}`}</span>`;
   if (!h) return nonLink;
 
   const r = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${h}`);
