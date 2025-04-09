@@ -1,37 +1,16 @@
-.sd-image-parser-link {
-  font-size: 13px;
-  text-decoration: none;
-  border: 1px solid var(--primary-600);
-  transition: color 0.2s ease !important;
-  padding: 2px 3px;
-  margin: 3px 0;
-  background-color: var(--panel-background-fill);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 50ch;
+:root {
+  --parser-text-nonlink: #fff;
 }
 
-.sd-image-parser-link:hover {
-  color: var(--primary-400) !important;
-  border: 1px solid var(--link-text-color-hover);
-}
-
-.sd-image-parser-nonlink {
-  font-size: 14px;
-  border: 1px solid transparent;
-  padding: 2px 3px;
-  margin: 3px 0;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow: hidden;
+.dark {
+  --parser-text-nonlink: var(--body-text-color);
 }
 
 .sd-image-parser-modeloutput-line {
   display: flex;
   padding: 0px;
   margin-bottom: 5px;
-  border-radius: 5em;
+  border-radius: 1rem;
   box-shadow: 0 0 4px 1px #000;
 }
 
@@ -67,4 +46,36 @@
   padding-bottom: 2px;
   align-items: flex-start;
   margin-left: 5px;
+}
+
+.sd-image-parser-modeloutput-hashes .sd-image-parser-link {
+  font-size: 13px;
+  text-decoration: none;
+  border: 1px solid var(--primary-600);
+  transition: color 0.2s ease !important;
+  padding: 2px 3px;
+  margin: 3px 0;
+  background-color: var(--panel-background-fill);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50ch;
+  white-space: nowrap;
+  font-weight: normal;
+}
+
+.sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
+  color: var(--primary-400) !important;
+  border: 1px solid var(--link-text-color-hover);
+}
+
+.sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
+  color: var(--parser-text-nonlink);
+  font-size: 14px;
+  border: 1px solid transparent;
+  padding: 2px 3px;
+  margin: 3px 0;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: hidden;
 }
