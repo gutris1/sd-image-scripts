@@ -71,6 +71,7 @@
 
 .sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
   color: #000 !important;
+  border-color: #000 !important;
   background: var(--primary-400) !important;
   box-shadow: 0 0 10px 0px var(--primary-400);
   filter: drop-shadow(0 0 1px var(--primary-400));
