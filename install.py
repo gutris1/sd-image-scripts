@@ -1,12 +1,16 @@
 from pathlib import Path
-import urllib.request
+import subprocess
 
-r = {
-    'javascript/exif-reader.js': 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/dist/exif-reader.js',
-    'javascript/exif-reader-LICENSE': 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/LICENSE'
-}
+def _Req():
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=path, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
 
-for f, u in r.items():
-    fp = Path(__file__).parent / f
-    if not fp.exists():
-        fp.write_bytes(urllib.request.urlopen(u).read())
+    path = Path(__file__).parent
+    url = git('config', '--get', 'remote.origin.url')
+    local = git('rev-parse', 'HEAD')
+    remote = subprocess.run(['git', 'ls-remote', url, 'HEAD'], text=True, stdout=subprocess.PIPE).stdout.split()[0]
+
+    if local != remote:
+        subprocess.run(['git', 'pull'], cwd=path)
+
+_Req()
