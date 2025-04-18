@@ -62,13 +62,12 @@ async function SDImageParser(img) {
         ', Size: ' + nai['width'] + 'x' + nai['height'] +
         ', Clip skip: 2, ENSD: 31337';
 
-    } else if (tags.prompt?.description && tags.workflow) {
-      if (tags.prompt.description.includes("'filename_prefix': 'ComfyUI'")) {
-        output = 'ComfyUI<br>Nothing To Read Here';
-      }
+    } else if (tags.prompt?.description?.includes('"filename_prefix": "ComfyUI"')) {
+      output = 'ComfyUI<br>Nothing To Read Here';
 
     } else if (tags.invokeai_graph?.description) {
       output = 'InvokeAI<br>Nothing To Read Here';
+
     } else {
       output = 'Nothing To See Here';
     }
@@ -248,7 +247,7 @@ async function SDImageParserFetchModelOutput(i) {
 
   const FetchResult = (l, m) => {
     return `
-      <div id='SD-Image-Parser-Model-Output' class='sd-image-parser-modeloutput-line'>
+      <div class='sd-image-parser-modeloutput-line'>
         <div class='sd-image-parser-modeloutput-label'>${l}</div>
         <div class='sd-image-parser-modeloutput-hashes'>${m.join(' ')}</div>
       </div>
