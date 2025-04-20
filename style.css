@@ -6,15 +6,26 @@
   --parser-text-nonlink: var(--body-text-color);
 }
 
-.sd-image-parser-modeloutput-line {
+#SD-Image-Parser-Model-Output {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: auto;
+  height: auto;
+  cursor: default;
+  pointer-events: auto;
+  transition: 0.3s ease;
+}
+
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-line {
   display: flex;
   padding: 0px;
   gap: 0.5rem;
   border-radius: 1rem;
 }
 
-.sd-image-parser-modeloutput-label,
-.sd-image-parser-modeloutput-hashes {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label,
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
   display: flex;
   flex-wrap: wrap;
   word-wrap: break-word;
@@ -23,7 +34,7 @@
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
 }
 
-.sd-image-parser-modeloutput-label {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
   width: 16%;
   background-color: var(--input-background-fill);
   font-size: 15px;
@@ -33,7 +44,7 @@
   justify-content: center;
 }
 
-.sd-image-parser-modeloutput-hashes {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
   width: 84%;
   overflow-wrap: break-word;
   column-gap: 10px;
@@ -49,11 +60,11 @@
   transition: background 0.3s ease;
 }
 
-.sd-image-parser-modeloutput-hashes:hover {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {
   background: rgba(0, 0, 0, 0.6);
 }
 
-.sd-image-parser-modeloutput-hashes .sd-image-parser-link {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link {
   font-size: 13px;
   color: var(--body-text-color) !important;
   text-decoration: none !important;
@@ -69,7 +80,7 @@
   transition: 0.1s ease-out;
 }
 
-.sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
   color: #000 !important;
   border-color: #000 !important;
   background: var(--primary-400) !important;
@@ -77,7 +88,7 @@
   filter: drop-shadow(0 0 1px var(--primary-400));
 }
 
-.sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
   color: var(--parser-text-nonlink);
   font-size: 14px;
   border: 1px solid transparent;
