@@ -182,96 +182,96 @@ function SDImageParserConvertSwarmUI(Sui, extraData = {}) {
   return output.trim();
 }
 
-async function SDImageParserFetchModelOutput(i) {
-  let modelEX;
-  let FetchedModels = '';
-  let HashesDict = {};
-  let TIHashDict = {};
+async function SDImageParserFetchModelOutput(i, timeout = 60000) {
+  return await Promise.race([
+    (async () => {
+      let FetchedModels = '';
+      const HashesDict = {};
+      const TIHashDict = {};
+      const Cat = { checkpoint: [], vae: [], lora: [], embed: [] };
 
-  const Cat = { checkpoint: [], vae: [], lora: [], embed: [], };
+      const modelEX = i.includes('Model: "') ? i.match(/Model:\s*"?([^"]+)"/) : i.match(/Model:\s*([^,]+)/);
+      const modelHashEX = i.match(/Model hash:\s*([^,]+)/);
+      const vaeEX = i.match(/VAE:\s*([^,]+)/);
+      const vaeHashEX = i.match(/VAE hash:\s*([^,]+)/);
+      const loraHashEX = i.match(/Lora hashes:\s*"([^"]+)"/);
+      const tiHashEX = i.match(/TI hashes:\s*"([^"]+)"/);
+      const hashesIndex = i.indexOf('Hashes:');
+      const hashesEX = hashesIndex !== -1 ? i.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/) : null;
 
-  if (i.includes('Model: "')) modelEX = i.match(/Model:\s*"?([^"]+)"/);
-  else modelEX = i.match(/Model:\s*([^,]+)/);
-
-  const modelHashEX = i.match(/Model hash:\s*([^,]+)/);
-  const vaeEX = i.match(/VAE:\s*([^,]+)/);
-  const vaeHashEX = i.match(/VAE hash:\s*([^,]+)/);
-  const loraHashEX = i.match(/Lora hashes:\s*"([^"]+)"/);
-  const tiHashEX = i.match(/TI hashes:\s*"([^"]+)"/);
-  const hashesIndex = i.indexOf('Hashes:');
-  const hashesEX = hashesIndex !== -1 ? i.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/) : null;
-
-  if (hashesEX && hashesEX[1]) {
-    const s = JSON.parse(hashesEX[1].trim());
-    for (const [k, h] of Object.entries(s)) {
-      if (k.startsWith('embed:')) {
-        const n = k.replace('embed:', '');
-        HashesDict[n] = h;
-        const fetchedHash = await SDImageParserFetchingModels(n, h, false);
-        Cat.embed.push(fetchedHash);
-      }
-    }
-  }
-
-  if (tiHashEX) {
-    const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
-    for (const pair of embedPairs) {
-      const [n, h] = pair.split(':').map(item => item.trim());
-      if (h && !HashesDict[n]) {
-        TIHashDict[n] = h;
-        const fetchedHash = await SDImageParserTIHashesSearchLink(n, h);
-        Cat.embed.push(fetchedHash);
-      }
-    }
-  }
-
-  if (modelEX) {
-    const modelValue = modelEX[1];
-    const modelHash = modelHashEX ? modelHashEX[1] : null;
-    const vaeValue = vaeEX ? vaeEX[1] : null;
-    const vaeHash = vaeHashEX ? vaeHashEX[1] : null;
-    if (modelHash || vaeValue || vaeHash) Cat.checkpoint.push({ n: modelValue, h: modelHash });
-  }
-
-  const vaeValue = vaeEX ? vaeEX[1] : null;
-  const vaeHash = vaeHashEX ? vaeHashEX[1] : null;
-  if (vaeValue || vaeHash) Cat.vae.push({ n: vaeValue, h: vaeHash });
-
-  if (loraHashEX) {
-    const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
-    for (const pair of loraPairs) {
-      const [n, h] = pair.split(':').map(item => item.trim());
-      if (h) Cat.lora.push({ n, h });
-    }
-  }
-
-  const FetchResult = (l, m) => {
-    return `
-      <div class='sd-image-parser-modeloutput-line'>
-        <div class='sd-image-parser-modeloutput-label'>${l}</div>
-        <div class='sd-image-parser-modeloutput-hashes'>${m.join(' ')}</div>
-      </div>
-    `;
-  };
-
-  for (const [category, items] of Object.entries(Cat)) {
-    if (items.length > 0) {
-      let models;
-
-      if (category === 'embed') {
-        models = items.map(item => item);
-      } else if (category === 'lora') {
-        models = await Promise.all(items.map(async ({ n, h }) => { return await SDImageParserFetchingModels(n, h, false); }));
-      } else {
-        const isTHat = category === 'checkpoint' || category === 'vae';
-        models = await Promise.all(items.map(async ({ n, h }) => { return await SDImageParserFetchingModels(n, h, isTHat); }));
+      if (hashesEX && hashesEX[1]) {
+        const s = JSON.parse(hashesEX[1].trim());
+        for (const [k, h] of Object.entries(s)) {
+          if (k.startsWith('embed:')) {
+            const n = k.replace('embed:', '');
+            HashesDict[n] = h;
+            const fetchedHash = await SDImageParserFetchingModels(n, h, false);
+            Cat.embed.push(fetchedHash);
+          }
+        }
       }
 
-      FetchedModels += FetchResult(category, models);
-    }
-  }
+      if (tiHashEX) {
+        const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
+        for (const pair of embedPairs) {
+          const [n, h] = pair.split(':').map(item => item.trim());
+          if (h && !HashesDict[n]) {
+            TIHashDict[n] = h;
+            const fetchedHash = await SDImageParserTIHashesSearchLink(n, h);
+            Cat.embed.push(fetchedHash);
+          }
+        }
+      }
 
-  return `${FetchedModels}`;
+      if (modelEX) {
+        const modelValue = modelEX[1];
+        const modelHash = modelHashEX ? modelHashEX[1] : null;
+        const vaeValue = vaeEX ? vaeEX[1] : null;
+        const vaeHash = vaeHashEX ? vaeHashEX[1] : null;
+
+        if (modelHash || vaeValue || vaeHash) Cat.checkpoint.push({ n: modelValue, h: modelHash });
+        if (vaeValue || vaeHash) Cat.vae.push({ n: vaeValue, h: vaeHash });
+      }
+
+      if (loraHashEX) {
+        const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
+        for (const pair of loraPairs) {
+          const [n, h] = pair.split(':').map(item => item.trim());
+          if (h) Cat.lora.push({ n, h });
+        }
+      }
+
+      const FetchResult = (l, m) => {
+        return `
+          <div class='sd-image-parser-modeloutput-line'>
+            <div class='sd-image-parser-modeloutput-label'>${l}</div>
+            <div class='sd-image-parser-modeloutput-hashes'>${m.join(' ')}</div>
+          </div>
+        `;
+      };
+
+      for (const [category, items] of Object.entries(Cat)) {
+        if (items.length > 0) {
+          let models;
+
+          if (category === 'embed') {
+            models = items;
+          } else if (category === 'lora') {
+            models = await Promise.all(items.map(({ n, h }) => SDImageParserFetchingModels(n, h, false)));
+          } else {
+            const isThat = category === 'checkpoint' || category === 'vae';
+            models = await Promise.all(items.map(({ n, h }) => SDImageParserFetchingModels(n, h, isThat)));
+          }
+
+          FetchedModels += FetchResult(category, models);
+        }
+      }
+
+      return `<div id='SD-Image-Parser-Model-Output'>${FetchedModels}</div>`;
+
+    })(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
+  ]);
 }
 
 async function SDImageParserFetchingModels(n, h, isTHat = false) {
