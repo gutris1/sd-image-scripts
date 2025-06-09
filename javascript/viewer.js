@@ -15,7 +15,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
       const imgELH = imgEL.offsetHeight * this.scale;
       const LightBoxW = LightBox.offsetWidth;
       const LightBoxH = LightBox.offsetHeight;
-      
+
       if (this.scale <= MIN) {
         this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
         imgEL.style.transition = '';
@@ -25,7 +25,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
 
       let targetX = this.offsetX;
       let targetY = this.offsetY;
-      
+
       if (imgELW <= LightBoxW) {
         targetX = 0;
       } else {
@@ -112,7 +112,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
       Control.classList.add(noPointer);
     }, 100);
   });
-
 
   imgEL.addEventListener('mousemove', (e) => {
     if (!Groped) return;
