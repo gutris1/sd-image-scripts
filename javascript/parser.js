@@ -1,4 +1,4 @@
-async function SDImageParser(img) {
+async function SharedImageParser(img) {
   window.SDImageParserEncryptInfo = '';
   window.SDImageParserSha256Info = '';
   window.SDImageParserNaiSourceInfo = '';
@@ -27,21 +27,21 @@ async function SDImageParser(img) {
       if (tags.parameters.description.includes('sui_image_params')) {
         const parSing = JSON.parse(tags.parameters.description);
         const Sui = parSing['sui_image_params'];
-        output = SDImageParserConvertSwarmUI(Sui, {});
+        output = _ConvertSwarmUI(Sui, {});
       } else {
         output = tags.parameters.description;
       }
 
     } else if (tags.UserComment?.value) {
       const array = tags.UserComment.value;
-      const UserComments = SDImageParserDecodeUserComment(array);
+      const UserComments = _DecodeUserComment(array);
       if (UserComments.includes('sui_image_params')) {
         const rippin = UserComments.trim().replace(/[\x00-\x1F\x7F]/g, '');
         const parSing = JSON.parse(rippin);
         if (parSing['sui_image_params']) {
           const Sui = parSing['sui_image_params'];
           const SuiExtra = parSing['sui_extra_data'] || {};
-          output = SDImageParserConvertSwarmUI(Sui, SuiExtra);
+          output = _ConvertSwarmUI(Sui, SuiExtra);
         }
       } else {
         output = UserComments;
@@ -53,8 +53,8 @@ async function SDImageParser(img) {
       const nai = JSON.parse(tags.Comment.description);
       nai.sampler = 'Euler';
 
-      output = SDImageParserConvertNovelAI(nai['prompt']) +
-        '\nNegative prompt: ' + SDImageParserConvertNovelAI(nai['uc']) +
+      output = _ConvertNovelAI(nai['prompt']) +
+        '\nNegative prompt: ' + _ConvertNovelAI(nai['uc']) +
         '\nSteps: ' + nai['steps'] +
         ', Sampler: ' + nai['sampler'] +
         ', CFG scale: ' + parseFloat(nai['scale']).toFixed(1) +
@@ -76,7 +76,7 @@ async function SDImageParser(img) {
   return output;
 }
 
-function SDImageParserDecodeUserComment(array) {
+function _DecodeUserComment(array) {
   const result = [];
   let pos = 7;
 
@@ -107,7 +107,7 @@ function SDImageParserDecodeUserComment(array) {
   return output.replace(/^UNICODE[\x00-\x20]*/, '');
 }
 
-function SDImageParserConvertNovelAI(input) {
+function _ConvertNovelAI(input) {
   const NAIround = v => Math.round(v * 10000) / 10000;
   const NAIMultiplyRange = (start, multiplier) => res.slice(start).forEach(row => row[1] = NAIround(row[1] * multiplier));
   const re_attention = /\{|\[|\}|\]|[^\{\}\[\]]+/gmu;
@@ -139,7 +139,7 @@ function SDImageParserConvertNovelAI(input) {
   return result;
 }
 
-function SDImageParserConvertSwarmUI(Sui, extraData = {}) {
+function _ConvertSwarmUI(Sui, extraData = {}) {
   let output = '';
 
   if (Sui.prompt) output += `${Sui.prompt}\n`;
@@ -182,13 +182,28 @@ function SDImageParserConvertSwarmUI(Sui, extraData = {}) {
   return output.trim();
 }
 
-async function SDImageParserFetchModelOutput(i, timeout = 60000) {
+async function SharedModelsFetch(i, timeout = 60000) {
   return await Promise.race([
     (async () => {
       let FetchedModels = '';
       const HashesDict = {};
       const TIHashDict = {};
       const Cat = { checkpoint: [], vae: [], lora: [], embed: [] };
+
+      const TIHashesSearchLink = async (n, h) => h
+        ? `<a class='sd-image-parser-link' href='https://civitai.com/search/models?sortBy=models_v9&query=${h}' target='_blank'>${n}</a>`
+        : `<span class='sd-image-parser-nonlink'>${n}: ${h}</span>`;
+
+      const FetchingModels = async (n, h, isTHat = false) => {
+        const nonLink = `<span class='sd-image-parser-nonlink'>${n}${isTHat ? '' : `: ${h}`}</span>`;
+        if (!h) return nonLink;
+
+        const r = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${h}`);
+        const d = await r.json();
+
+        if (d.error === 'Model not found' || !d.model?.name) return nonLink;
+        return `<a class='sd-image-parser-link' href='https://civitai.com/models/${d.modelId}?modelVersionId=${d.id}' target='_blank'>${d.model.name}</a>`;
+      };
 
       const modelEX = i.includes('Model: "') ? i.match(/Model:\s*"?([^"]+)"/) : i.match(/Model:\s*([^,]+)/);
       const modelHashEX = i.match(/Model hash:\s*([^,]+)/);
@@ -205,7 +220,7 @@ async function SDImageParserFetchModelOutput(i, timeout = 60000) {
           if (k.startsWith('embed:')) {
             const n = k.replace('embed:', '');
             HashesDict[n] = h;
-            const fetchedHash = await SDImageParserFetchingModels(n, h, false);
+            const fetchedHash = await FetchingModels(n, h, false);
             Cat.embed.push(fetchedHash);
           }
         }
@@ -217,7 +232,7 @@ async function SDImageParserFetchModelOutput(i, timeout = 60000) {
           const [n, h] = pair.split(':').map(item => item.trim());
           if (h && !HashesDict[n]) {
             TIHashDict[n] = h;
-            const fetchedHash = await SDImageParserTIHashesSearchLink(n, h);
+            const fetchedHash = await TIHashesSearchLink(n, h);
             Cat.embed.push(fetchedHash);
           }
         }
@@ -257,10 +272,10 @@ async function SDImageParserFetchModelOutput(i, timeout = 60000) {
           if (category === 'embed') {
             models = items;
           } else if (category === 'lora') {
-            models = await Promise.all(items.map(({ n, h }) => SDImageParserFetchingModels(n, h, false)));
+            models = await Promise.all(items.map(({ n, h }) => FetchingModels(n, h, false)));
           } else {
             const isThat = category === 'checkpoint' || category === 'vae';
-            models = await Promise.all(items.map(({ n, h }) => SDImageParserFetchingModels(n, h, isThat)));
+            models = await Promise.all(items.map(({ n, h }) => FetchingModels(n, h, isThat)));
           }
 
           FetchedModels += FetchResult(category, models);
@@ -272,21 +287,4 @@ async function SDImageParserFetchModelOutput(i, timeout = 60000) {
     })(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
   ]);
-}
-
-async function SDImageParserFetchingModels(n, h, isTHat = false) {
-  const nonLink = `<span class='sd-image-parser-nonlink'>${n}${isTHat ? '' : `: ${h}`}</span>`;
-  if (!h) return nonLink;
-
-  const r = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${h}`);
-  const d = await r.json();
-
-  if (d.error === 'Model not found' || !d.model?.name) return nonLink;
-  return `<a class='sd-image-parser-link' href='https://civitai.com/models/${d.modelId}?modelVersionId=${d.id}' target='_blank'>${d.model.name}</a>`;
-}
-
-async function SDImageParserTIHashesSearchLink(n, h) {
-  return h 
-    ? `<a class='sd-image-parser-link' href='https://civitai.com/search/models?sortBy=models_v9&query=${h}' target='_blank'>${n}</a>` 
-    : `<span class='sd-image-parser-nonlink'>${n}: ${h}</span>`;
 }
