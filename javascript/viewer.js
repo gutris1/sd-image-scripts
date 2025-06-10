@@ -1,5 +1,11 @@
 function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
-  const { MIN = 1.0001, MAX = 10, noScroll = null, noPointer = null } = options;
+  const {
+    MIN = 1.0001,
+    MAX = 10,
+    noScroll = null,
+    noPointer = null,
+    onClose = null
+  } = options;
 
   const imgState = {
     scale: 1.0001, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastLen: 1, LastTouch: 0, LastZoom: 0,
@@ -88,6 +94,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
         Wrapper.style.transform = Wrapper.style.opacity = '';
         imgEL?.remove();
         document.body.classList.remove(noScroll);
+        if (typeof onClose === 'function') onClose();
       }, 200);
     }
   };
