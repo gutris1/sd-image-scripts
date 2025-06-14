@@ -1,8 +1,8 @@
 async function SharedImageParser(img) {
-  window.SDImageParserEncryptInfo = '';
-  window.SDImageParserSha256Info = '';
-  window.SDImageParserNaiSourceInfo = '';
-  window.SDImageParserSoftwareInfo = '';
+  window.SharedParserEncryptInfo = '';
+  window.SharedParserSha256Info = '';
+  window.SharedParserNaiSourceInfo = '';
+  window.SharedParserSoftwareInfo = '';
 
   const res = await fetch(img.src);
   const blob = await res.blob();
@@ -20,8 +20,8 @@ async function SharedImageParser(img) {
   let output = '';
 
   if (tags) {
-    window.SDImageParserEncryptInfo = tags.Encrypt?.description || '';
-    window.SDImageParserSha256Info = tags.EncryptPwdSha?.description || '';
+    window.SharedParserEncryptInfo = tags.Encrypt?.description || '';
+    window.SharedParserSha256Info = tags.EncryptPwdSha?.description || '';
 
     if (tags.parameters?.description) {
       if (tags.parameters.description.includes('sui_image_params')) {
@@ -48,8 +48,8 @@ async function SharedImageParser(img) {
       }
 
     } else if (tags['Software']?.description === 'NovelAI' && tags.Comment?.description) {
-      window.SDImageParserSoftwareInfo = tags['Software']?.description || '';
-      window.SDImageParserNaiSourceInfo = tags['Source']?.description || '';
+      window.SharedParserSoftwareInfo = tags['Software']?.description || '';
+      window.SharedParserNaiSourceInfo = tags['Source']?.description || '';
       const nai = JSON.parse(tags.Comment.description);
       nai.sampler = 'Euler';
 
@@ -156,7 +156,7 @@ function _ConvertSwarmUI(Sui, extraData = {}) {
   if (Sui.model) output += `Model: ${Sui.model}, `;
   if (Sui.vae) { const vaeParts = Sui.vae.split('/'); output += `VAE: ${vaeParts[vaeParts.length - 1]}, `; }
 
-  window.SDImageParserSoftwareInfo = Sui?.swarm_version ? `SwarmUI ${Sui.swarm_version}` : '';
+  window.SharedParserSoftwareInfo = Sui?.swarm_version ? `SwarmUI ${Sui.swarm_version}` : '';
   output = output.trim().replace(/,$/, '');
 
   let otherParams = Object.entries(Sui)
