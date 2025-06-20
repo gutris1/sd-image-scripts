@@ -80,30 +80,17 @@ function _DecodeUserComment(array) {
   const result = [];
   let pos = 7;
 
-  if (array[8] === 123) {
-    for (let i = pos; i < array.length; i+=2) {
-      const inDEX = array[i];
-      const nEXT = array[i + 1];
-      if (inDEX === 0 && nEXT === 32) { result.push(32); continue; }
-      const vaLUE = inDEX * 256 + nEXT;
-      result.push(vaLUE);
-    }
-  } else {
+  if (array[8] === 123) for (let i = pos; i < array.length; i += 2) { const a = array[i], b = array[i + 1]; result.push(a === 0 && b === 32 ? 32 : a * 256 + b); }
+  else {
     for (let i = pos; i < array.length; i++) {
       if (i === 7 && array[i] === 0) continue;
       if (array[i] === 0) if (i + 1 < array.length && array[i + 1] === 0) { i++; continue; }
-      if (i + 1 < array.length) {
-        const inDEX = array[i];
-        const nEXT = array[i + 1];
-        if (inDEX === 0 && nEXT === 32) { result.push(32); i++; continue; }
-        const vaLUE = inDEX * 256 + nEXT;
-        result.push(vaLUE);
-        i++;
-      }
+      if (i + 1 < array.length) { const a = array[i], b = array[i + 1]; result.push(a === 0 && b === 32 ? 32 : a * 256 + b); i++; continue; }
     }
   }
 
   const output = new TextDecoder('utf-16').decode(new Uint16Array(result)).trim();
+
   return output.replace(/^UNICODE[\x00-\x20]*/, '');
 }
 
@@ -111,20 +98,20 @@ function _ConvertNovelAI(input) {
   const NAIround = v => Math.round(v * 10000) / 10000;
   const NAIMultiplyRange = (start, multiplier) => res.slice(start).forEach(row => row[1] = NAIround(row[1] * multiplier));
   const re_attention = /\{|\[|\}|\]|[^\{\}\[\]]+/gmu;
-  let text = input.replaceAll('(', '\\(').replaceAll(')', '\\)').replace(/\\{2,}(\(|\))/gim, '\$1');
+  let t = input.replaceAll('(', '\\(').replaceAll(')', '\\)').replace(/\\{2,}(\(|\))/gim, '\$1');
   let res = [];
   let curly_brackets = [];
   let square_brackets = [];
   const curly_bracket_multiplier = 1.05;
   const square_bracket_multiplier = 1 / 1.05;
 
-  for (const match of text.matchAll(re_attention)) {
-    let word = match[0];
-    if (word === '{') curly_brackets.push(res.length);
-    else if (word === '[') square_brackets.push(res.length);
-    else if (word === '}' && curly_brackets.length > 0) NAIMultiplyRange(curly_brackets.pop(), curly_bracket_multiplier);
-    else if (word === ']' && square_brackets.length > 0) NAIMultiplyRange(square_brackets.pop(), square_bracket_multiplier);
-    else res.push([word, 1.0]);
+  for (const match of t.matchAll(re_attention)) {
+    let w = match[0];
+    if (w === '{') curly_brackets.push(res.length);
+    else if (w === '[') square_brackets.push(res.length);
+    else if (w === '}' && curly_brackets.length > 0) NAIMultiplyRange(curly_brackets.pop(), curly_bracket_multiplier);
+    else if (w === ']' && square_brackets.length > 0) NAIMultiplyRange(square_brackets.pop(), square_bracket_multiplier);
+    else res.push([w, 1.0]);
   }
 
   for (const pos of curly_brackets) NAIMultiplyRange(pos, curly_bracket_multiplier);
@@ -136,6 +123,7 @@ function _ConvertNovelAI(input) {
 
   let result = '';
   for (let i = 0; i < res.length; i++) { if (res[i][1] === 1.0) { result += res[i][0]; } else { result += `(${res[i][0]}:${res[i][1]})`; }}
+
   return result;
 }
 
@@ -159,50 +147,87 @@ function _ConvertSwarmUI(Sui, extraData = {}) {
   window.SharedParserSoftwareInfo = Sui?.swarm_version ? `SwarmUI ${Sui.swarm_version}` : '';
   output = output.trim().replace(/,$/, '');
 
-  let otherParams = Object.entries(Sui)
-    .filter(([key]) => {
-      return ![
-        'prompt', 
-        'negativeprompt', 
-        'steps', 
-        'sampler', 
-        'scheduler', 
-        'cfgscale', 
-        'seed', 
-        'width', 
-        'height', 
-        'model', 
-        'vae', 
-        'swarm_version'
-      ].includes(key);
-    }).map(([key, value]) => `${key}: ${value}`).join(', ');
+  let otherParams = Object.entries(Sui).filter(([k]) => ![
+    'prompt','negativeprompt','steps','sampler','scheduler','cfgscale','seed','width','height','model','vae','swarm_version'
+  ].includes(k)).map(([k,v]) => `${k}: ${v}`).join(', ');
 
   let extraParams = Object.entries(extraData).map(([key, value]) => `${key}: ${value}`).join(', ');
   if (otherParams || extraParams) output += (output ? ', ' : '') + [otherParams, extraParams].filter(Boolean).join(', ');
+
   return output.trim();
 }
 
 async function SharedModelsFetch(i, timeout = 60000) {
   return await Promise.race([
     (async () => {
-      let FetchedModels = '';
-      const HashesDict = {};
-      const TIHashDict = {};
       const Cat = { checkpoint: [], vae: [], lora: [], embed: [] };
 
+      const EmbedNames = new Set();
+      const LoraNames = new Set();
+      const HashesDict = {};
+
+      let FetchedModels = '';
+
+      const Link = 'sd-image-parser-link';
+      const nonLink = 'sd-image-parser-nonlink';
+
       const TIHashesSearchLink = async (n, h) => h
-        ? `<a class='sd-image-parser-link' href='https://civitai.com/search/models?sortBy=models_v9&query=${h}' target='_blank'>${n}</a>`
-        : `<span class='sd-image-parser-nonlink'>${n}: ${h}</span>`;
+        ? `<a class='${Link}' href='https://civitai.com/search/models?sortBy=models_v9&query=${h}' target='_blank'>${n}</a>`
+        : `<span class='${nonLink}'>${n}: ${h}</span>`;
 
-      const FetchingModels = async (n, h, isTHat = false) => {
-        const nonLink = `<span class='sd-image-parser-nonlink'>${n}${isTHat ? '' : `: ${h}`}</span>`;
-        if (!h) return nonLink;
+      const FetchingModels = async (n, h, isThat = false) => {
+        const N = `<span class='${nonLink}'>${n}${isThat ? '' : `: ${h}`}</span>`;
+        if (!h) return N;
+        try {
+          const r = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${h}`);
+          if (!r.ok) return N;
+          const d = await r.json();
+          if (!d.model?.name) return N;
+          return `<a class='${Link}' href='https://civitai.com/models/${d.modelId}?modelVersionId=${d.id}' target='_blank'>${d.model.name}</a>`;
+        } catch {
+          return N;
+        }
+      };
 
-        const r = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${h}`);
-        const d = await r.json();
+      const FetchLora = async (n, h) => {
+        if (!n || !h || LoraNames.has(n)) return;
+        LoraNames.add(n);
+        const Hashes = async () => {
+          let t = h;
+          while (t.length >= 8) {
+            const r = await FetchingModels(n, t, false);
+            if (!r.includes(nonLink)) return r;
+            t = t.slice(0, -2);
+          }
+          return await TIHashesSearchLink(n, h);
+        };
+        const f = await Hashes();
+        Cat.lora.push(f);
+      };
 
-        if (d.error === 'Model not found' || !d.model?.name) return nonLink;
-        return `<a class='sd-image-parser-link' href='https://civitai.com/models/${d.modelId}?modelVersionId=${d.id}' target='_blank'>${d.model.name}</a>`;
+      const FetchEmbed = async (n, h) => {
+        if (!n || !h || EmbedNames.has(n)) return;
+        EmbedNames.add(n);
+        const Hashes = async () => {
+          let t = h;
+          while (t.length >= 8) {
+            const r = await FetchingModels(n, t, false);
+            if (!r.includes(nonLink)) return r;
+            t = t.slice(0, -2);
+          }
+          return await TIHashesSearchLink(n, h);
+        };
+        const f = await Hashes();
+        Cat.embed.push(f);
+      };
+
+      const FetchResult = (l, m) => {
+        return `
+          <div class='sd-image-parser-modeloutput-line'>
+            <div class='sd-image-parser-modeloutput-label'>${l}</div>
+            <div class='sd-image-parser-modeloutput-hashes'>${m.join(' ')}</div>
+          </div>
+        `;
       };
 
       const modelEX = i.includes('Model: "') ? i.match(/Model:\s*"?([^"]+)"/) : i.match(/Model:\s*([^,]+)/);
@@ -214,30 +239,6 @@ async function SharedModelsFetch(i, timeout = 60000) {
       const hashesIndex = i.indexOf('Hashes:');
       const hashesEX = hashesIndex !== -1 ? i.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/) : null;
 
-      if (hashesEX && hashesEX[1]) {
-        const s = JSON.parse(hashesEX[1].trim());
-        for (const [k, h] of Object.entries(s)) {
-          if (k.startsWith('embed:')) {
-            const n = k.replace('embed:', '');
-            HashesDict[n] = h;
-            const fetchedHash = await FetchingModels(n, h, false);
-            Cat.embed.push(fetchedHash);
-          }
-        }
-      }
-
-      if (tiHashEX) {
-        const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
-        for (const pair of embedPairs) {
-          const [n, h] = pair.split(':').map(item => item.trim());
-          if (h && !HashesDict[n]) {
-            TIHashDict[n] = h;
-            const fetchedHash = await TIHashesSearchLink(n, h);
-            Cat.embed.push(fetchedHash);
-          }
-        }
-      }
-
       if (modelEX) {
         const modelValue = modelEX[1];
         const modelHash = modelHashEX ? modelHashEX[1] : null;
@@ -248,42 +249,54 @@ async function SharedModelsFetch(i, timeout = 60000) {
         if (vaeValue || vaeHash) Cat.vae.push({ n: vaeValue, h: vaeHash });
       }
 
-      if (loraHashEX) {
-        const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
-        for (const pair of loraPairs) {
-          const [n, h] = pair.split(':').map(item => item.trim());
-          if (h) Cat.lora.push({ n, h });
+      if (hashesEX && hashesEX[1]) {
+        try {
+          const s = JSON.parse(hashesEX[1].trim());
+          for (const [k, h] of Object.entries(s)) {
+            if (k.startsWith('embed:')) {
+              const n = k.slice(6);
+              HashesDict[n] = h;
+              await FetchEmbed(n, h);
+            } else if (k.startsWith('lora:')) {
+              const n = k.slice(5);
+              HashesDict[n] = h;
+              await FetchLora(n, h);
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse Hashes:', e);
         }
       }
 
-      const FetchResult = (l, m) => {
-        return `
-          <div class='sd-image-parser-modeloutput-line'>
-            <div class='sd-image-parser-modeloutput-label'>${l}</div>
-            <div class='sd-image-parser-modeloutput-hashes'>${m.join(' ')}</div>
-          </div>
-        `;
-      };
+      if (loraHashEX) {
+        const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
+        for (const p of loraPairs) {
+          const [n, h] = p.split(':').map(x => x.trim());
+          if (h && !HashesDict[n]) await FetchLora(n, h);
+        }
+      }
+
+      if (tiHashEX) {
+        const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
+        for (const p of embedPairs) {
+          const [n, h] = p.split(':').map(x => x.trim());
+          if (h && !HashesDict[n]) await FetchEmbed(n, h);
+        }
+      }
 
       for (const [category, items] of Object.entries(Cat)) {
         if (items.length > 0) {
           let models;
-
-          if (category === 'embed') {
-            models = items;
-          } else if (category === 'lora') {
-            models = await Promise.all(items.map(({ n, h }) => FetchingModels(n, h, false)));
-          } else {
+          if (category === 'embed' || category === 'lora') models = items;
+          else {
             const isThat = category === 'checkpoint' || category === 'vae';
             models = await Promise.all(items.map(({ n, h }) => FetchingModels(n, h, isThat)));
           }
-
           FetchedModels += FetchResult(category, models);
         }
       }
 
       return `<div id='SD-Image-Parser-Model-Output'>${FetchedModels}</div>`;
-
     })(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
   ]);

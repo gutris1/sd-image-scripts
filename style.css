@@ -48,7 +48,7 @@
   width: 84%;
   overflow-wrap: break-word;
   column-gap: 10px;
-  padding: 4px 0 4px 10px;
+  padding: 3px 10px;
   row-gap: 3px;
   position: relative;
   align-items: flex-start;
@@ -57,7 +57,7 @@
   background: rgba(0, 0, 0, 0.4);
   box-shadow: inset 0 0 10px 1px rgba(255, 255, 255, 0.3);
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
-  transition: background 0.3s ease;
+  transition: background-color .5s ease;
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {
