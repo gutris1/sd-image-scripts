@@ -158,6 +158,13 @@ function _ConvertSwarmUI(Sui, extraData = {}) {
 }
 
 async function SharedModelsFetch(i, timeout = 60000) {
+  const err = console.error;
+  console.error = function(...args) {
+    const msg = args.toString();
+    if (msg) return;
+    err.apply(console, args);
+  };
+
   return await Promise.race([
     (async () => {
       const Cat = { checkpoint: [], vae: [], lora: [], embed: [] };
