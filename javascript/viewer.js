@@ -1,26 +1,36 @@
-function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
+function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
   const {
     MIN = 1.0001,
     MAX = 10,
     noScroll = null,
     noPointer = null,
-    onClose = null
-  } = options;
+    onClose = null,
+    persist = null
+  } = opts;
 
   const imgState = {
     scale: 1.0001, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastLen: 1, LastTouch: 0, LastZoom: 0,
     ZoomMomentum: 0, MoveMomentum: 0, SnapMouse: 20, SnapTouch: 10, dragSpeed: 1.5,
+
+    GropinTime: null,
+    Groped: false,
 
     TouchGrass: {
       touchScale: false, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0, 
       delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0, scale: 1.0001
     },
 
+    MultiGrope: false,
+
+    dimensions: function (imgEL, LightBox) {
+      return {
+        imgELW: imgEL.offsetWidth * this.scale, imgELH: imgEL.offsetHeight * this.scale,
+        LightBoxW: LightBox.offsetWidth, LightBoxH: LightBox.offsetHeight
+      };
+    },
+
     SnapBack: function (imgEL, LightBox, resize = false) {
-      const imgELW = imgEL.offsetWidth * this.scale;
-      const imgELH = imgEL.offsetHeight * this.scale;
-      const LightBoxW = LightBox.offsetWidth;
-      const LightBoxH = LightBox.offsetHeight;
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(imgEL, LightBox);
 
       if (this.scale <= MIN) {
         this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
@@ -32,40 +42,19 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
       let targetX = this.offsetX;
       let targetY = this.offsetY;
 
-      if (imgELW <= LightBoxW) {
-        targetX = 0;
-      } else {
-        const maxX = (imgELW - LightBoxW) / 2;
-        targetX = Math.max(-maxX, Math.min(maxX, this.offsetX));
-      }
-
-      if (imgELH <= LightBoxH) {
-        targetY = 0;
-      } else {
-        const maxY = (imgELH - LightBoxH) / 2;
-        targetY = Math.max(-maxY, Math.min(maxY, this.offsetY));
-      }
+      targetX = (imgELW <= LightBoxW) ? 0 : Math.max(-(imgELW - LightBoxW) / 2, Math.min((imgELW - LightBoxW) / 2, this.offsetX));
+      targetY = (imgELH <= LightBoxH) ? 0 : Math.max(-(imgELH - LightBoxH) / 2, Math.min((imgELH - LightBoxH) / 2, this.offsetY));
 
       const changed = (targetX !== this.offsetX) || (targetY !== this.offsetY);
       this.offsetX = targetX;
       this.offsetY = targetY;
 
-      if (resize && changed) {
-        imgEL.style.transition = 'none';
-      } else if (!resize) {
-        imgEL.style.transition = 'transform .3s ease-out';
-      } else {
-        imgEL.style.transition = '';
-      }
-
+      imgEL.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s ease-out' : '';
       imgEL.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
     },
 
     clamp: function (imgEL, LightBox) {
-      const imgELW = imgEL.offsetWidth * this.scale;
-      const imgELH = imgEL.offsetHeight * this.scale;
-      const LightBoxW = LightBox.offsetWidth;
-      const LightBoxH = LightBox.offsetHeight;
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(imgEL, LightBox);
 
       const maxX = (imgELW - LightBoxW) / 2;
       const maxY = (imgELH - LightBoxH) / 2;
@@ -77,13 +66,16 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     reset: function() {
       this.scale = 1.0001; 
       this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
+      this.GropinTime = null;
+      this.Groped = false;
+      this.MultiGrope = false;
 
       Object.assign(this.TouchGrass, {
         touchScale: false, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0, 
         delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0, scale: 1.0001
       });
 
-      imgEL.style.transition = imgEL.style.transform = '';
+      imgEL.style.transition = imgEL.style.transform = imgEL.style.cursor = '';
     },
 
     close: function () {
@@ -103,15 +95,18 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
 
   imgEL.ondrag = imgEL.ondragend = imgEL.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
 
-  let GropinTime = null;
-  let Groped = false;
   let Resizer;
+
+  const getDimensions = (imgEL, LightBox, scale = imgState.scale) => ({
+    imgELW: imgEL.offsetWidth * scale, imgELH: imgEL.offsetHeight * scale,
+    LightBoxW: LightBox.offsetWidth, LightBoxH: LightBox.offsetHeight
+  });
 
   imgEL.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    GropinTime = setTimeout(() => {
-      Groped = true;
+    imgState.GropinTime = setTimeout(() => {
+      imgState.Groped = true;
       imgEL.style.transition = 'transform 0s';
       imgEL.style.cursor = 'grab';
       imgState.lastX = e.clientX;
@@ -121,16 +116,13 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
   });
 
   imgEL.addEventListener('mousemove', (e) => {
-    if (!Groped) return;
+    if (!imgState.Groped) return;
 
     e.preventDefault();
     imgEL.onclick = (e) => e.stopPropagation();
     LightBox.onclick = (e) => e.stopPropagation();
 
-    const imgELW = imgEL.offsetWidth * imgState.scale;
-    const imgELH = imgEL.offsetHeight * imgState.scale;
-    const LightBoxW = LightBox.offsetWidth;
-    const LightBoxH = LightBox.offsetHeight;
+    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
 
     const deltaX = e.clientX - imgState.lastX;
     const deltaY = e.clientY - imgState.lastY;
@@ -169,36 +161,42 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     imgState.lastY = e.clientY;
   });
 
-  window.SharedImageEvents = window.SharedImageEvents || {};
-  if (window.SharedImageEvents.MouseUp) document.removeEventListener('mouseup', window.SharedImageEvents.MouseUp);
-  if (window.SharedImageEvents.MouseLeave) document.removeEventListener('mouseleave', window.SharedImageEvents.MouseLeave);
-  if (window.SharedImageEvents.Resize) window.removeEventListener('resize', window.SharedImageEvents.Resize);
+  const NAME = persist === true ? 'SDImageViewerEvents' : 'SharedImageEvents';
+  window[NAME] = window[NAME] || {};
 
-  window.SharedImageEvents.MouseUp = (e) => {
-    clearTimeout(GropinTime);
-    if (!Groped && e.button === 0) {
+  if (persist !== true) {
+    if (window[NAME].MouseUp) document.removeEventListener('mouseup', window[NAME].MouseUp);
+    if (window[NAME].MouseLeave) document.removeEventListener('mouseleave', window[NAME].MouseLeave);
+    if (window[NAME].Resize) window.removeEventListener('resize', window[NAME].Resize);
+  }
+
+  if (persist === true && window[NAME].MouseUp) return;
+
+  window[NAME].MouseUp = (e) => {
+    clearTimeout(imgState.GropinTime);
+    if (!imgState.Groped && e.button === 0) {
       imgEL.onclick = undefined;
       LightBox.onclick = e => (e.preventDefault(), e.target === imgEL || imgState.close());
       return;
     }
 
     imgState.SnapBack(imgEL, LightBox);
-    Groped = false;
-    imgEL.style.cursor = 'auto';
+    imgState.Groped = false;
+    imgEL.style.cursor = '';
     setTimeout(() => imgEL.style.transition = 'transform 0s', 100);
     Control.classList.remove(noPointer);
   };
 
-  window.SharedImageEvents.MouseLeave = (e) => {
-    if (e.target !== LightBox && Groped) {
+  window[NAME].MouseLeave = (e) => {
+    if (e.target !== LightBox && imgState.Groped) {
       imgState.SnapBack(imgEL, LightBox);
-      Groped = false;
-      imgEL.style.cursor = 'auto';
+      imgState.Groped = false;
+      imgEL.style.cursor = '';
       Control.classList.remove(noPointer);
     }
   };
 
-  window.SharedImageEvents.Resize = () => {
+  window[NAME].Resize = () => {
     clearTimeout(Resizer);
     Resizer = setTimeout(() => {
       imgState.clamp(imgEL, LightBox);
@@ -209,9 +207,9 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
   };
 
   setTimeout(() => {
-    document.addEventListener('mouseup', window.SharedImageEvents.MouseUp);
-    document.addEventListener('mouseleave', window.SharedImageEvents.MouseLeave);
-    window.addEventListener('resize', window.SharedImageEvents.Resize);
+    document.addEventListener('mouseup', window[NAME].MouseUp);
+    document.addEventListener('mouseleave', window[NAME].MouseLeave);
+    window.addEventListener('resize', window[NAME].Resize);
   }, 100);
 
   imgEL.addEventListener('wheel', (e) => {
@@ -247,10 +245,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     imgEL.style.transition = 'transform .3s ease-out';
     const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale;
 
-    const imgELW = imgEL.offsetWidth * imgState.scale;
-    const imgELH = imgEL.offsetHeight * imgState.scale;
-    const LightBoxW = LightBox.offsetWidth;
-    const LightBoxH = LightBox.offsetHeight;
+    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
 
     if (imgState.scale <= MIN) {
       imgEL.style.transform = `translate(0px, 0px) scale(${MIN})`;
@@ -310,7 +305,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     imgState.MoveMomentum *= 0.1;
   }, { passive: false });
 
-  let MultiGrope = false;
   let lastDistance = 0;
   let lastScale = 1;
 
@@ -324,13 +318,13 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     Control.classList.add(noPointer);
 
     if (e.targetTouches[1]) {
-      MultiGrope = true;
+      imgState.MultiGrope = true;
       imgState.TouchGrass.touchScale = true;
       lastDistance = touchDistance(e.targetTouches[0], e.targetTouches[1]);
       lastScale = imgState.scale;
 
     } else {
-      MultiGrope = false;
+      imgState.MultiGrope = false;
       if (!imgState.TouchGrass.touchScale) {
         imgState.lastX = e.targetTouches[0].clientX;
         imgState.lastY = e.targetTouches[0].clientY;
@@ -355,10 +349,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
       imgState.scale = lastScale * zoom;
       imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
 
-      const imgELW = imgEL.offsetWidth * imgState.scale;
-      const imgELH = imgEL.offsetHeight * imgState.scale;
-      const LightBoxW = LightBox.offsetWidth;
-      const LightBoxH = LightBox.offsetHeight;
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
 
       if (imgState.scale <= MIN) {
         imgState.offsetX = imgState.offsetY = 0;
@@ -411,10 +402,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
       const deltaX = (currentX - imgState.lastX) * imgState.dragSpeed;
       const deltaY = (currentY - imgState.lastY) * imgState.dragSpeed;
 
-      const imgELW = imgEL.offsetWidth * imgState.scale;
-      const imgELH = imgEL.offsetHeight * imgState.scale;
-      const LightBoxW = LightBox.offsetWidth;
-      const LightBoxH = LightBox.offsetHeight;
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
 
       if (imgState.scale <= MIN) {
         imgState.offsetX = imgState.offsetY = 0;
@@ -454,7 +442,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     e.preventDefault();
     Control.classList.remove(noPointer);
     imgEL.onclick = undefined;
-    MultiGrope = false;
+    imgState.MultiGrope = false;
     imgState.TouchGrass.touchScale = false;
     imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
     imgState.SnapBack(imgEL, LightBox);
@@ -467,7 +455,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, options = {}) {
     imgEL.style.transition = 'none';
 
     if (e.targetTouches.length === 0) {
-      if (MultiGrope) MultiGrope = false; 
+      if (imgState.MultiGrope) imgState.MultiGrope = false; 
       imgState.TouchGrass.touchScale = false;
       imgState.SnapBack(imgEL, LightBox);
       setTimeout(() => imgState.TouchGrass.touchScale = false, 10);
