@@ -10,10 +10,11 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
 
   const imgState = {
     scale: 1.0001, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastLen: 1, LastTouch: 0, LastZoom: 0,
-    ZoomMomentum: 0, MoveMomentum: 0, SnapMouse: 20, SnapTouch: 10, dragSpeed: 1.5,
+    MoveMomentum: 0, SnapMouse: 30, SnapTouch: 10, dragSpeed: 1.5,
 
     GropinTime: null,
     Groped: false,
+    Axis: null,
 
     TouchGrass: {
       touchScale: false, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0, 
@@ -107,11 +108,11 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     e.preventDefault();
     imgState.GropinTime = setTimeout(() => {
       imgState.Groped = true;
-      imgEL.style.transition = 'transform 0s';
+      imgEL.style.transition = 'transform 80ms ease';
       imgEL.style.cursor = 'grab';
       imgState.lastX = e.clientX;
       imgState.lastY = e.clientY;
-      Control.classList.add(noPointer);
+      if (imgState.scale > MIN) Control.classList.add(noPointer);
     }, 100);
   });
 
@@ -127,10 +128,23 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     const deltaX = e.clientX - imgState.lastX;
     const deltaY = e.clientY - imgState.lastY;
 
-    imgEL.style.transition = 'transform 60ms ease';
-
     if (imgState.scale <= MIN) {
-      imgEL.style.transform = `translate(0px, 0px) scale(${MIN})`;
+      imgEL.style.transition = 'transform .15s ease-out';
+      const moveX = e.clientX - imgState.lastX;
+      const moveY = e.clientY - imgState.lastY;
+      const snap = 50;
+
+      if (!imgState.Axis) imgState.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
+
+      const X = imgState.Axis === 'x';
+      const offset = X ? 'offsetX' : 'offsetY';
+      const delta = X ? moveX : moveY;
+
+      imgState[offset] += delta;
+      imgState[offset] = Math.max(Math.min(imgState[offset], snap), -snap);
+
+      const translate = X ? `translate(${imgState.offsetX}px, 0px)` : `translate(0px, ${imgState.offsetY}px)`;
+      imgEL.style.transform = `${translate} scale(${MIN})`;
 
     } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
       imgState.offsetY += deltaY;
@@ -183,8 +197,9 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     imgState.SnapBack(imgEL, LightBox);
     imgState.Groped = false;
     imgEL.style.cursor = '';
-    setTimeout(() => imgEL.style.transition = 'transform 0s', 100);
+    setTimeout(() => imgEL.style.transition = 'transform 0s', 300);
     Control.classList.remove(noPointer);
+    imgState.Axis = null;
   };
 
   window[NAME].MouseLeave = (e) => {
@@ -193,6 +208,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
       imgState.Groped = false;
       imgEL.style.cursor = '';
       Control.classList.remove(noPointer);
+      imgState.Axis = null;
     }
   };
 
@@ -219,10 +235,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     const CTRL = e.ctrlKey || e.metaKey;
     const SHIFT = e.shiftKey;
 
-    const currentTime = Date.now();
-    const timeDelta = currentTime - imgState.LastZoom;
-    imgState.LastZoom = currentTime;
-
     const centerX = LightBox.offsetWidth / 2;
     const centerY = LightBox.offsetHeight / 2;
     const delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail));
@@ -235,12 +247,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
       imgState.scale *= zoom;
       imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
     }
-
-    imgState.ZoomMomentum = delta / (timeDelta * 0.5 || 1);
-    imgState.ZoomMomentum = Math.min(Math.max(imgState.ZoomMomentum, -1.5), 1.5);
-
-    imgState.MoveMomentum = delta / (timeDelta * 0.1 || MIN);
-    imgState.MoveMomentum = Math.min(Math.max(imgState.MoveMomentum, -2), 2);
 
     imgEL.style.transition = 'transform .3s ease-out';
     const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale;
@@ -300,9 +306,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
 
       imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${SCALE})`;
     }
-
-    imgState.ZoomMomentum *= 0.5;
-    imgState.MoveMomentum *= 0.1;
   }, { passive: false });
 
   let lastDistance = 0;
@@ -315,7 +318,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
   imgEL.addEventListener('touchstart', (e) => {
     e.stopPropagation();
     imgEL.style.transition = 'none';
-    Control.classList.add(noPointer);
+    if (imgState.scale > MIN) Control.classList.add(noPointer);
 
     if (e.targetTouches[1]) {
       imgState.MultiGrope = true;
@@ -446,6 +449,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     imgState.TouchGrass.touchScale = false;
     imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
     imgState.SnapBack(imgEL, LightBox);
+    imgState.Axis = null;
   });
 
   imgEL.addEventListener('touchend', (e) => {
@@ -453,6 +457,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     Control.classList.remove(noPointer);
     imgEL.onclick = undefined;
     imgEL.style.transition = 'none';
+    imgState.Axis = null;
 
     if (e.targetTouches.length === 0) {
       if (imgState.MultiGrope) imgState.MultiGrope = false; 

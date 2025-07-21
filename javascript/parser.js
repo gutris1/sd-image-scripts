@@ -4,19 +4,12 @@ async function SharedImageParser(img) {
   window.SharedParserNaiSourceInfo = '';
   window.SharedParserSoftwareInfo = '';
 
-  const res = await fetch(img.src);
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const array = await blob.arrayBuffer();
-  const tags = ExifReader.load(array);
-  img.src = url;
+  const bin = atob(img.src.split(',')[1]);
+  const len = bin.length;
+  const b = new Uint8Array(len);
+  for (let i = 0; i < len; i++) { b[i] = bin.charCodeAt(i); }
 
-  const openInNewTab = document.createElement('a');
-  openInNewTab.href = url;
-  openInNewTab.target = '_blank';
-  openInNewTab.textContent = 'Open Image in New Tab';
-  openInNewTab.addEventListener('click', () => { setTimeout(() => URL.revokeObjectURL(url), 1000); });
-
+  const tags = ExifReader.load(b.buffer);
   let output = '';
 
   if (tags) {
