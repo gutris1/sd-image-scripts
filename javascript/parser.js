@@ -4,11 +4,9 @@ async function SharedImageParser(img) {
   window.SharedParserNaiSourceInfo = '';
   window.SharedParserSoftwareInfo = '';
 
-  const bin = atob(img.src.split(',')[1]);
-  const len = bin.length;
-  const b = new Uint8Array(len);
-  for (let i = 0; i < len; i++) { b[i] = bin.charCodeAt(i); }
-
+  const [prefix, base64] = img.src.split(',');
+  const b = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  img.src = URL.createObjectURL(new Blob([b], { type: prefix.match(/data:(.*?);base64/)[1] }));
   const tags = ExifReader.load(b.buffer);
   let output = '';
 
