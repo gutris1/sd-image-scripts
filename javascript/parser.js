@@ -1,18 +1,26 @@
 async function SharedImageParser(img) {
-  window.SharedParserEncryptInfo = '';
-  window.SharedParserSha256Info = '';
-  window.SharedParserNaiSourceInfo = '';
-  window.SharedParserSoftwareInfo = '';
+  [
+    'EncryptInfo',
+    'Sha256Info',
+    'ExtrasInfo',
+    'PostProcessingInfo',
+    'NaiSourceInfo',
+    'SoftwareInfo'
+  ].forEach(k => window[`SharedParser${k}`] = '');
 
-  const [prefix, base64] = img.src.split(',');
-  const b = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const [prefix, base64] = img.src.split(','), b = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
   img.src = URL.createObjectURL(new Blob([b], { type: prefix.match(/data:(.*?);base64/)[1] }));
+
   const tags = ExifReader.load(b.buffer);
   let output = '';
 
   if (tags) {
     window.SharedParserEncryptInfo = tags.Encrypt?.description || '';
     window.SharedParserSha256Info = tags.EncryptPwdSha?.description || '';
+
+    const extra = tags.extras?.description || tags.postprocessing?.description || '';
+    window.SharedParserExtrasInfo = tags.extras?.description ? extra : '';
+    window.SharedParserPostProcessingInfo = tags.extras?.description ? '' : extra;
 
     if (tags.parameters?.description) {
       if (tags.parameters.description.includes('sui_image_params')) {
@@ -35,7 +43,12 @@ async function SharedImageParser(img) {
           output = _ConvertSwarmUI(Sui, SuiExtra);
         }
       } else {
-        output = UserComments;
+        if (UserComments.startsWith('Postprocess upscale')) {
+          window.SharedParserExtrasInfo = UserComments;
+          output = '';
+        } else {
+          output = UserComments;
+        }
       }
 
     } else if (tags['Software']?.description === 'NovelAI' && tags.Comment?.description) {
@@ -291,10 +304,16 @@ async function SharedModelsFetch(i, timeout = 60000) {
             models = await Promise.all(items.map(({ n, h }) => FetchingModels(n, h, isThat)));
           }
           FetchedModels += FetchResult(category, models);
+
+          setTimeout(() => {
+            ['sd-image-parser-modeloutput-label', 'sd-image-parser-modeloutput-hashes'].forEach(C => {
+              document.querySelectorAll(`.${C}`).forEach(el => el.classList.add('sd-image-parser-modeloutput-display'));
+            });
+          }, 100);
         }
       }
 
-      return `<div id='SD-Image-Parser-Model-Output'>${FetchedModels}</div>`;
+      return FetchedModels.trim() ? `<div id='SD-Image-Parser-Model-Output'>${FetchedModels}</div>` : '';
     })(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
   ]);

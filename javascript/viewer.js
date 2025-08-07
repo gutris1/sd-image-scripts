@@ -49,7 +49,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
       const changed = (targetX !== this.offsetX) || (targetY !== this.offsetY);
       this.offsetX = targetX;
       this.offsetY = targetY;
-
+//transform .3s cubic-bezier(.2, .4, .4, 1) 0s
       imgEL.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s ease-out' : '';
       imgEL.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
     },
@@ -123,22 +123,22 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     imgEL.onclick = (e) => e.stopPropagation();
     LightBox.onclick = (e) => e.stopPropagation();
 
-    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
+    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox),
 
-    const deltaX = e.clientX - imgState.lastX;
-    const deltaY = e.clientY - imgState.lastY;
+          deltaX = e.clientX - imgState.lastX,
+          deltaY = e.clientY - imgState.lastY;
 
     if (imgState.scale <= MIN) {
       imgEL.style.transition = 'transform .15s ease-out';
-      const moveX = e.clientX - imgState.lastX;
-      const moveY = e.clientY - imgState.lastY;
-      const snap = 50;
+      const moveX = e.clientX - imgState.lastX,
+            moveY = e.clientY - imgState.lastY,
+            snap = 50;
 
       if (!imgState.Axis) imgState.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
 
-      const X = imgState.Axis === 'x';
-      const offset = X ? 'offsetX' : 'offsetY';
-      const delta = X ? moveX : moveY;
+      const X = imgState.Axis === 'x',
+            offset = X ? 'offsetX' : 'offsetY',
+            delta = X ? moveX : moveY;
 
       imgState[offset] += delta;
       imgState[offset] = Math.max(Math.min(imgState[offset], snap), -snap);
@@ -197,7 +197,6 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     imgState.SnapBack(imgEL, LightBox);
     imgState.Groped = false;
     imgEL.style.cursor = '';
-    setTimeout(() => imgEL.style.transition = 'transform 0s', 300);
     Control.classList.remove(noPointer);
     imgState.Axis = null;
   };
@@ -232,26 +231,26 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     e.stopPropagation();
     e.preventDefault();
 
-    const CTRL = e.ctrlKey || e.metaKey;
-    const SHIFT = e.shiftKey;
+    imgEL.style.transition = 'transform .3s cubic-bezier(.3, .6, .6, 1)';
 
-    const centerX = LightBox.offsetWidth / 2;
-    const centerY = LightBox.offsetHeight / 2;
-    const delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail));
-    const zoomStep = 0.15;
-    const zoom = MIN + delta * zoomStep;
-    const moveStep = 30 * imgState.scale;
-    const lastScale = imgState.scale;
+    const CTRL = e.ctrlKey || e.metaKey,
+          SHIFT = e.shiftKey,
+
+          centerX = LightBox.offsetWidth / 2,
+          centerY = LightBox.offsetHeight / 2,
+          delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail)),
+          zoomStep = 0.15,
+          zoom = MIN + delta * zoomStep,
+          moveStep = 30 * imgState.scale,
+          lastScale = imgState.scale;
 
     if (!CTRL && !SHIFT) {
       imgState.scale *= zoom;
       imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
     }
 
-    imgEL.style.transition = 'transform .3s ease-out';
-    const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale;
-
-    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
+    const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale,
+          { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
 
     if (imgState.scale <= MIN) {
       imgEL.style.transform = `translate(0px, 0px) scale(${MIN})`;
@@ -290,8 +289,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
       } else if (SHIFT) {
         imgState.offsetX -= delta * moveStep;
       } else if (!SHIFT && !CTRL) {
-        const imgCenterX = imgState.offsetX + centerX;
-        const imgCenterY = imgState.offsetY + centerY;
+        const imgCenterX = imgState.offsetX + centerX, imgCenterY = imgState.offsetY + centerY;
         imgState.offsetX = e.clientX - ((e.clientX - imgCenterX) / lastScale) * imgState.scale - centerX;
         imgState.offsetY = e.clientY - ((e.clientY - imgCenterY) / lastScale) * imgState.scale - centerY;
       }
@@ -308,9 +306,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     }
   }, { passive: false });
 
-  let lastDistance = 0;
-  let lastScale = 1;
-
+  let lastDistance = 0, lastScale = 1;
   const touchDistance = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
   LightBox.ontouchmove = (e) => e.target !== imgEL && (e.stopPropagation(), e.preventDefault());

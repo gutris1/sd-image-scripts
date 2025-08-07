@@ -1,15 +1,18 @@
 :root {
-  --parser-text-nonlink: #fff;
+  --sd-img-parser-modeloutput-box-shadow: inset 0 0 4px 0 rgb(176 176 176 / 30%), 0 0 5px 0 rgb(5 5 5 / 75%);
+  --sd-img-parser-modeloutput-background: rgb(255 255 255 / 20%);
+  --sd-img-parser-modeloutput-background-hover: rgb(255 255 255 / 50%);
 }
 
 .dark {
-  --parser-text-nonlink: var(--body-text-color);
+  --sd-img-parser-modeloutput-background: rgb(0 0 0 / 40%);
+  --sd-img-parser-modeloutput-background-hover: rgb(0 0 0 / 60%);
 }
 
 #SD-Image-Parser-Model-Output {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
   width: auto;
   height: auto;
   cursor: default;
@@ -20,7 +23,7 @@
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-line {
   display: flex;
   padding: 0px;
-  gap: 0.5rem;
+  gap: 8px;
   border-radius: 1rem;
 }
 
@@ -31,70 +34,102 @@
   word-wrap: break-word;
   white-space: normal;
   box-sizing: border-box;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+  opacity: 0;
+  transition: .3s ease, opacity 1s ease;
+}
+
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label.sd-image-parser-modeloutput-display,
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes.sd-image-parser-modeloutput-display {
+  opacity: 1;
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
-  width: 16%;
-  background-color: var(--input-background-fill);
-  font-size: 15px;
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
   align-items: center;
   justify-content: center;
+  font-size: 15px;
+  min-width: calc(16% - 8px);
+  width: calc(16% - 8px);
+  border-top-left-radius: 1rem;
+  border-bottom-left-radius: 1rem;
+  box-shadow: 0 0 3px 1px #000;
+  background-color: var(--input-background-fill);
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
-  width: 84%;
-  overflow-wrap: break-word;
   column-gap: 10px;
-  padding: 3px 10px;
   row-gap: 3px;
-  position: relative;
+  overflow-wrap: break-word;
   align-items: flex-start;
+  position: relative;
+  min-width: 84%;
+  width: 84%;
   border: 0;
   border-radius: 0 1rem 1rem 0;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 0 10px 1px rgba(255, 255, 255, 0.3);
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
-  transition: background-color .5s ease;
+  padding: 3px 10px;
+  box-shadow: var(--sd-img-parser-modeloutput-box-shadow);
+  background: var(--sd-img-parser-modeloutput-background);
+  backdrop-filter: blur(5px);
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--sd-img-parser-modeloutput-background-hover);
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link {
-  font-size: 13px;
-  color: var(--body-text-color) !important;
   text-decoration: none !important;
-  border: 1px solid var(--primary-600) !important;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: normal;
+  white-space: nowrap;
+  max-width: 50ch;
+  border: 1px solid var(--primary-500) !important;
   padding: 2px 7px;
   margin: 3px 0;
-  background-color: var(--panel-background-fill) !important;
-  white-space: nowrap;
+  color: var(--body-text-color) !important;
+  background: var(--input-background-fill) !important;
+  transition: .1s ease-out;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 50ch;
-  font-weight: normal;
-  transition: 0.1s ease-out;
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
-  color: #000 !important;
-  border-color: #000 !important;
-  background: var(--primary-400) !important;
+  border-color: var(--primary-500) !important;
   box-shadow: 0 0 10px 0px var(--primary-400);
-  filter: drop-shadow(0 0 1px var(--primary-400));
+  color: var(--background-fill-primary) !important;
+  background: var(--primary-400) !important;
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
-  color: var(--parser-text-nonlink);
+  white-space: normal;
+  word-wrap: break-word;
   font-size: 14px;
   border: 1px solid transparent;
   padding: 2px 3px;
   margin: 3px 0;
-  white-space: normal;
-  word-wrap: break-word;
+  color: var(--body-text-color);
   overflow: hidden;
+}
+
+#SDHub-Gallery-Tab .sdhub-gallery-imageinfo-display-model-output {
+  animation: undressBox 1.5s forwards ease;
+}
+
+@keyframes undressBox {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
+    min-width: calc(18% - 8px);
+    width: calc(18% - 8px);
+  }
+
+  #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+    min-width: 82%;
+    width: 82%;
+  }
 }
