@@ -159,50 +159,7 @@ async function SharedImageParser(img) {
   return output;
 }
 
-function SharedVersionParser(i) {
-  const m = i.match(/(?:,\s*)?Version:\s*([^\s,]+)/);
-  if (m) {
-    const v = m[1], T = 'Stable Diffusion WebUI'
-
-    d = [
-      {
-        n: (v) => /^v?(\d)\.(\d{1,2})\.(\d)(-RC)?$/.test(v),
-        l: 'https://github.com/AUTOMATIC1111/stable-diffusion-webui',
-        t: (v) => `${T} — ${v}`,
-      },
-      {
-        n: (v) => v.includes('f2.0.1v1.10.1'),
-        l: 'https://github.com/lllyasviel/stable-diffusion-webui-forge',
-        t: (v) => `${T} Forge — ${v.split(/[\s,]/)[0]}`,
-      },
-      {
-        n: (v) => v.includes('f1.0.0v2-v1.10.1'),
-        l: 'https://github.com/Panchovix/stable-diffusion-webui-reForge',
-        t: (v) => `${T} ReForge — ${v.split(/[\s,]/)[0]}`,
-      },
-      {
-        n: (v) => v === 'classic',
-        l: 'https://github.com/Haoming02/sd-webui-forge-classic',
-        t: (v) => `${T} Forge Classic — ${v.split(/[\s,]/)[0]}`,
-      },
-    ],
-
-    w = d.find(({ n }) => n(v));
-
-    if (w) {
-      const { l, t } = w, f = typeof t === 'function' ? t(v) : `${t} ${v}`;
-      window.SharedParserSoftwareInfo = `
-        <a href='${l}' class='sd-image-parser-software' target='_blank' rel='noopener noreferrer'>
-          ${f}
-        </a>
-      `;
-    }
-  }
-
-  return i;
-}
-
-async function SharedModelsFetch(i, timeout = 60000) {
+async function SharedModelsFetchhh(i, timeout = 60000) {
   const err = console.error;
   console.error = function(...args) {
     const msg = args.toString();
@@ -356,6 +313,117 @@ async function SharedModelsFetch(i, timeout = 60000) {
 
       return FetchedModels.trim() ? `<div id='SD-Image-Parser-Model-Output'>${FetchedModels}</div>` : '';
     })(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
+  ]);
+}
+
+async function SharedModelsFetch(i, timeout = 60000) {
+  const err = console.error;
+  console.error = function(...args) {
+    const msg = args.toString();
+    if (msg) return;
+    err.apply(console, args);
+  };
+
+  return await Promise.race([
+    (async () => {
+      const Cat = { checkpoint: [], vae: [], lora: [], embed: [] },
+      EmbedNames = new Set(),
+      LoraNames = new Set(),
+      HashesDict = {},
+
+      modelEX = i.includes('Model: "') ? i.match(/Model:\s*"?([^"]+)"/) : i.match(/Model:\s*([^,]+)/),
+      modelHashEX = i.match(/Model hash:\s*([^,]+)/),
+      vaeEX = i.match(/VAE:\s*([^,]+)/),
+      vaeHashEX = i.match(/VAE hash:\s*([^,]+)/),
+      loraHashEX = i.match(/Lora hashes:\s*"([^"]+)"/),
+      tiHashEX = i.match(/TI hashes:\s*"([^"]+)"/),
+      hashesIndex = i.indexOf('Hashes:'),
+      hashesEX = hashesIndex !== -1 ? i.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/) : null;
+
+      if (modelEX) {
+        const modelValue = modelEX[1],
+        modelHash = modelHashEX ? modelHashEX[1] : null,
+        vaeValue = vaeEX ? vaeEX[1] : null,
+        vaeHash = vaeHashEX ? vaeHashEX[1] : null;
+
+        if (modelHash || vaeValue || vaeHash) Cat.checkpoint.push({ n: modelValue, h: modelHash });
+        if (vaeValue || vaeHash) Cat.vae.push({ n: vaeValue, h: vaeHash });
+      }
+
+      if (hashesEX && hashesEX[1]) {
+        try {
+          const s = JSON.parse(hashesEX[1].trim());
+          for (const [k, h] of Object.entries(s)) {
+            if (k.startsWith('embed:')) {
+              const n = k.slice(6);
+              HashesDict[n] = h;
+              if (!EmbedNames.has(n)) {
+                EmbedNames.add(n);
+                Cat.embed.push({ n, h });
+              }
+            } else if (k.startsWith('lora:')) {
+              const n = k.slice(5);
+              HashesDict[n] = h;
+              if (!LoraNames.has(n)) {
+                LoraNames.add(n);
+                Cat.lora.push({ n, h });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse Hashes:', e);
+        }
+      }
+
+      if (loraHashEX) {
+        const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
+        for (const p of loraPairs) {
+          const [n, h] = p.split(':').map(x => x.trim());
+          if (h && !HashesDict[n] && !LoraNames.has(n)) {
+            LoraNames.add(n);
+            Cat.lora.push({ n, h });
+          }
+        }
+      }
+
+      if (tiHashEX) {
+        const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
+        for (const p of embedPairs) {
+          const [n, h] = p.split(':').map(x => x.trim());
+          if (h && !HashesDict[n] && !EmbedNames.has(n)) {
+            EmbedNames.add(n);
+            Cat.embed.push({ n, h });
+          }
+        }
+      }
+
+      try {
+        const r = await fetch('/sd-image-scripts-models-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Cat)
+        });
+
+        if (!r.ok) throw new Error(`Error ${r.status}`);
+
+        const data = await r.json();
+
+        setTimeout(() => {
+          ['sd-image-parser-modeloutput-label', 'sd-image-parser-modeloutput-hashes'].forEach(C => {
+            document.querySelectorAll(`.${C}`).forEach(el =>
+              el.classList.add('sd-image-parser-modeloutput-display')
+            );
+          });
+        }, 100);
+
+        return data.html;
+      } catch (err) {
+        console.error('Fetch failed', err);
+        return '';
+      }
+    })(),
+
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
   ]);
 }
