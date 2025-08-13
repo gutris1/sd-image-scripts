@@ -1,5 +1,5 @@
 :root {
-  --sd-img-parser-modeloutput-box-shadow: inset 0 0 4px 0 rgb(176 176 176 / 30%), 0 0 5px 0 rgb(5 5 5 / 75%);
+  --sd-img-parser-modeloutput-box-shadow: 0 0 4px 0 rgb(0 0 0 / 55%);
   --sd-img-parser-modeloutput-background: rgb(255 255 255 / 20%);
   --sd-img-parser-modeloutput-background-hover: rgb(255 255 255 / 50%);
 }

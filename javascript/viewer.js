@@ -49,9 +49,9 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
       const changed = (targetX !== this.offsetX) || (targetY !== this.offsetY);
       this.offsetX = targetX;
       this.offsetY = targetY;
-//transform .3s cubic-bezier(.2, .4, .4, 1) 0s
-      imgEL.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s ease-out' : '';
-      imgEL.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
+
+      imgEL.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s cubic-bezier(.3, .6, .6, 1)' : '';
+      requestAnimationFrame(() => imgEL.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`);
     },
 
     clamp: function (imgEL, LightBox) {
@@ -108,7 +108,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     e.preventDefault();
     imgState.GropinTime = setTimeout(() => {
       imgState.Groped = true;
-      imgEL.style.transition = 'transform 80ms ease';
+      imgEL.style.transition = 'transform .1s cubic-bezier(.1, .2, .2, 1)';
       imgEL.style.cursor = 'grab';
       imgState.lastX = e.clientX;
       imgState.lastY = e.clientY;
@@ -124,21 +124,20 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     LightBox.onclick = (e) => e.stopPropagation();
 
     const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox),
-
-          deltaX = e.clientX - imgState.lastX,
-          deltaY = e.clientY - imgState.lastY;
+    deltaX = e.clientX - imgState.lastX,
+    deltaY = e.clientY - imgState.lastY;
 
     if (imgState.scale <= MIN) {
       imgEL.style.transition = 'transform .15s ease-out';
       const moveX = e.clientX - imgState.lastX,
-            moveY = e.clientY - imgState.lastY,
-            snap = 50;
+      moveY = e.clientY - imgState.lastY,
+      snap = 50;
 
       if (!imgState.Axis) imgState.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
 
       const X = imgState.Axis === 'x',
-            offset = X ? 'offsetX' : 'offsetY',
-            delta = X ? moveX : moveY;
+      offset = X ? 'offsetX' : 'offsetY',
+      delta = X ? moveX : moveY;
 
       imgState[offset] += delta;
       imgState[offset] = Math.max(Math.min(imgState[offset], snap), -snap);
