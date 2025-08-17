@@ -4,11 +4,20 @@ async function SharedImageParser(img) {
   window.SharedParserNaiSourceInfo = '';
   window.SharedParserSoftwareInfo = '';
 
-  const [prefix, base64] = img.src.split(',');
-  const b = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-  img.src = URL.createObjectURL(new Blob([b], { type: prefix.match(/data:(.*?);base64/)[1] }));
-  const tags = ExifReader.load(b.buffer);
-  let output = '';
+  let output = '', buff;
+
+  if (img.src.startsWith('data:')) {
+    const [prefix, base64] = img.src.split(','), b = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    buff = b.buffer;
+    img.src = URL.createObjectURL(new Blob([b], { type: prefix.match(/data:(.*?);base64/)[1] }));
+  } else {
+    const src = (window.SDHubImg && window.SDHubImg.trim()) || img.src,
+    res = await fetch(src), blob = await res.blob();
+    buff = await blob.arrayBuffer();
+    img.src = URL.createObjectURL(blob);
+  }
+
+  const tags = ExifReader.load(buff);
 
   if (tags) {
     window.SharedParserEncryptInfo = tags.Encrypt?.description || '';
