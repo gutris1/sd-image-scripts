@@ -1,8 +1,9 @@
-from modules.script_callbacks import on_app_started
 from fastapi import FastAPI, Request
-from modules import cache
 import gradio as gr
 import httpx
+
+from modules.script_callbacks import on_app_started
+from modules import cache
 
 API = 'https://civitai.com/api/v1'
 H = f'{API}/model-versions/by-hash/{{}}'
@@ -11,7 +12,7 @@ S = 'https://civitai.com/search/models?sortBy=models_v9&query={}'
 V = cache.cache('sd_image_scripts')
 
 async def Fetch(n, h, cv=False):
-    k = f"{n}|{h}|{cv}"
+    k = f'{n}|{h}|{cv}'
     if k in V: return V[k]
 
     nonlink = (f"<span class='sd-image-parser-nonlink'>{n}{'' if cv else f': {h}'}</span>")
@@ -32,7 +33,7 @@ async def Fetch(n, h, cv=False):
                         result = (
                             f"<a class='sd-image-parser-link' "
                             f"href='https://civitai.com/models/{d['modelId']}?modelVersionId={d['id']}' "
-                            f"target='_blank'>{d['model']['name']}</a>"
+                            f"target='_blank' tabindex='-1'>{d['model']['name']}</a>"
                         )
 
                         V[k] = result
@@ -41,7 +42,7 @@ async def Fetch(n, h, cv=False):
             except Exception: pass
             t = t[:-2]
 
-    result = nonlink if cv else f"<a class='sd-image-parser-link' href='{S.format(h)}' target='_blank'>{n}</a>"
+    result = nonlink if cv else f"<a class='sd-image-parser-link' href='{S.format(h)}' target='_blank' tabindex='-1'>{n}</a>"
     V[k] = result
     return result
 
@@ -60,8 +61,7 @@ def app(_: gr.Blocks, app: FastAPI):
         f = ''
 
         for c, i in d.items():
-            if not i:
-                continue
+            if not i: continue
             cv = not (c in ('embed', 'lora')) and (c in ('checkpoint', 'vae'))
             m = [await Fetch(v['n'], v['h'], cv) for v in i]
             f += Result(c, m)

@@ -39,8 +39,8 @@
   transition: .3s ease, opacity 1s ease;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label.sd-image-parser-modeloutput-display,
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes.sd-image-parser-modeloutput-display {
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label.sd-image-parser-display,
+#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes.sd-image-parser-display {
   opacity: 1;
 }
 
@@ -83,6 +83,7 @@
   color: var(--body-text-color) !important;
   transition: .1s ease-out;
   overflow: hidden;
+  outline: none;
 }
 
 #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {

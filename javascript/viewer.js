@@ -5,6 +5,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     noScroll = null,
     noPointer = null,
     onClose = null,
+    onLightboxClose = null,
     persist = null
   } = opts;
 
@@ -80,14 +81,14 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     },
 
     close: function () {
-      LightBox.style.opacity = '';
+      onLightboxClose?.(LightBox) ?? (LightBox.style.opacity = '');
 
       setTimeout(() => {
         LightBox.style.display = 'none';
         Wrapper.style.transform = Wrapper.style.opacity = '';
         imgEL?.remove();
         document.body.classList.remove(noScroll);
-        if (typeof onClose === 'function') onClose();
+        onClose?.();
       }, 200);
     }
   };
