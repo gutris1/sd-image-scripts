@@ -268,3 +268,18 @@ async function SharedModelsFetch(i, timeout = 60000) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
   ]);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const css = `
+    #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+      backdrop-filter: none !important;
+    }
+  `;
+
+  if (/firefox/i.test(navigator.userAgent)) {
+    const bg = document.createElement('style');
+    bg.id = 'SD-Image-Scripts-Style';
+    bg.innerHTML = css;
+    document.body.append(bg);
+  }
+});
