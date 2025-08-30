@@ -1,4 +1,4 @@
-async function SharedImageParser(img) {
+async function SharedImageParser(img, imgSrc = false) {
   const decodeUserComment = (array) => {
     const result = [];
     let pos = 7;
@@ -85,7 +85,8 @@ async function SharedImageParser(img) {
     buff = b.buffer;
     blob = new Blob([b], { type: prefix.match(/data:(.*?);base64/)[1] });
   } else {
-    blob = await (await fetch(window.SDHubImg?.trim() || img.src)).blob();
+    const url = imgSrc ? img.src : (window.SDHubImg?.trim() || img.src);
+    blob = await (await fetch(url)).blob();
     buff = await blob.arrayBuffer();
   }
 
@@ -156,6 +157,40 @@ async function SharedImageParser(img) {
   }
 
   return output;
+}
+
+function SharedPromptParser(t) {
+  const negativePromptIndex = t.indexOf('Negative prompt:'),
+  stepsIndex = t.indexOf('Steps:'),
+  hashesIndex = t.indexOf('Hashes:');
+
+  let prompt = '', negativePrompt = '', params = '';
+
+  if (negativePromptIndex !== -1) {
+    prompt = t.substring(0, negativePromptIndex).trim();
+  } else if (stepsIndex !== -1) {
+    prompt = t.substring(0, stepsIndex).trim();
+  } else {
+    prompt = t.trim();
+  }
+
+  if (negativePromptIndex !== -1 && stepsIndex !== -1 && stepsIndex > negativePromptIndex) {
+    negativePrompt = t.slice(negativePromptIndex + 'Negative prompt:'.length, stepsIndex).trim();
+  }
+
+  if (stepsIndex !== -1) {
+    const paramsRAW = t.slice(stepsIndex).trim();
+    params = paramsRAW.replace(/,\s*(Lora hashes|TI hashes):\s*"[^"]+"/g, '').trim();
+
+    const h = t.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/);
+    if (h?.[1]) params = params.replace(h[0], '').trim();
+    if (params.endsWith(',')) params = params.slice(0, -1).trim();
+
+    return { prompt, negativePrompt, params, paramsRAW };
+  } else {
+    params = t.trim();
+    return { prompt, negativePrompt, params, paramsRAW: null };
+  }
 }
 
 async function SharedModelsFetch(i, timeout = 60000) {

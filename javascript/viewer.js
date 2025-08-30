@@ -109,7 +109,7 @@ function SharedImageViewer(imgEL, LightBox, Control, Wrapper, opts = {}) {
     e.preventDefault();
     imgState.GropinTime = setTimeout(() => {
       imgState.Groped = true;
-      imgEL.style.transition = 'transform .1s cubic-bezier(.1, .2, .2, 1)';
+      imgEL.style.transition = 'transform 100ms cubic-bezier(.16, .16, .16, 1)';
       imgEL.style.cursor = 'grab';
       imgState.lastX = e.clientX;
       imgState.lastY = e.clientY;
