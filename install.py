@@ -1,20 +1,9 @@
 from pathlib import Path
 import urllib.request
-import subprocess
-import requests
+
+from modules.launch_utils import run_git
 
 base = Path(__file__).parent
-
-def check():
-    try:
-        requests.get('https://github.com', timeout=3)
-        return True
-    except requests.RequestException as e:
-        print(f'SD-Image-Scripts: {e}')
-        return False
-
-def git(*args):
-    return subprocess.run(['git', *args], cwd=base, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
 
 def req():
     exif = {
@@ -22,13 +11,10 @@ def req():
         (base / 'javascript/exif-reader-LICENSE'): 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/LICENSE'
     }
 
-    for files, url in exif.items():
-        if not files.exists():
-            files.write_bytes(urllib.request.urlopen(url).read())
+    for f, u in exif.items():
+        if not f.exists():
+            f.write_bytes(urllib.request.urlopen(u).read())
 
-    url = git('config', '--get', 'remote.origin.url')
-    local = git('rev-parse', 'HEAD')
-    remote = subprocess.run(['git', 'ls-remote', url, 'HEAD'], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.split()[0]
-    if local != remote: subprocess.run(['git', 'pull'], cwd=base, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    run_git(str(base), base.name, 'pull', desc='', errdesc='')
 
-if check(): req()
+req()
