@@ -1,12 +1,12 @@
-function SharedImageViewer(imgEL, LightBox, opts = {}) {
-  imgEL.ondrag = imgEL.ondragend = imgEL.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
+function SharedImageViewer(img, lightBox, opts = {}) {
+  img.ondrag = img.ondragend = img.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
 
   let Resizer, lastDistance = 0, lastScale = 1;
 
   const {
     persist = null,
-    zoomStart = null,
-    zoomEnd = null,
+    dragStart = null,
+    dragEnd = null,
     exitStart = null,
     exitEnd = null
   } = opts,
@@ -29,20 +29,20 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
 
     MultiGrope: false,
 
-    dimensions: function (imgEL, LightBox) {
+    dimensions: function (img, lightBox) {
       return {
-        imgELW: imgEL.offsetWidth * this.scale, imgELH: imgEL.offsetHeight * this.scale,
-        LightBoxW: LightBox.offsetWidth, LightBoxH: LightBox.offsetHeight
+        imgELW: img.offsetWidth * this.scale, imgELH: img.offsetHeight * this.scale,
+        LightBoxW: lightBox.offsetWidth, LightBoxH: lightBox.offsetHeight
       };
     },
 
-    SnapBack: function (imgEL, LightBox, resize = false) {
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(imgEL, LightBox);
+    SnapBack: function (img, lightBox, resize = false) {
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(img, lightBox);
 
       if (this.scale <= MIN) {
         this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
-        imgEL.style.transition = '';
-        imgEL.style.transform = `scale(${this.scale})`;
+        img.style.transition = '';
+        img.style.transform = `scale(${this.scale})`;
         return;
       }
 
@@ -56,12 +56,12 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       this.offsetX = targetX;
       this.offsetY = targetY;
 
-      imgEL.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s cubic-bezier(.3, .6, .6, 1)' : '';
-      requestAnimationFrame(() => imgEL.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`);
+      img.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s cubic-bezier(.3, .6, .6, 1)' : '';
+      requestAnimationFrame(() => img.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`);
     },
 
-    clamp: function (imgEL, LightBox) {
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(imgEL, LightBox);
+    clamp: function (img, lightBox) {
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(img, lightBox);
 
       const maxX = (imgELW - LightBoxW) / 2;
       const maxY = (imgELH - LightBoxH) / 2;
@@ -82,15 +82,15 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
         delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0, scale: 1.0001
       });
 
-      //imgEL.style.transition = imgEL.style.transform = imgEL.style.cursor = '';
+      //img.style.transition = img.style.transform = img.style.cursor = '';
     },
 
     close: function () {
       exitStart?.();
 
       setTimeout(() => {
-        LightBox.style.display = '';
-        imgEL?.remove();
+        lightBox.style.display = '';
+        img?.remove();
         exitEnd?.();
       }, 200);
     }
@@ -98,9 +98,9 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
 
   imgState.reset();
 
-  const getDimensions = (imgEL, LightBox, scale = imgState.scale) => ({
-    imgELW: imgEL.offsetWidth * scale, imgELH: imgEL.offsetHeight * scale,
-    LightBoxW: LightBox.offsetWidth, LightBoxH: LightBox.offsetHeight
+  const getDimensions = (img, lightBox, scale = imgState.scale) => ({
+    imgELW: img.offsetWidth * scale, imgELH: img.offsetHeight * scale,
+    LightBoxW: lightBox.offsetWidth, LightBoxH: lightBox.offsetHeight
   }),
 
   windowEvents = (persist) => {
@@ -108,7 +108,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     window[NAME] = window[NAME] || {};
 
     if (persist !== true) {
-      LightBox.onclick = null;
+      lightBox.onclick = null;
       window[NAME].MouseUp && document.removeEventListener('mouseup', window[NAME].MouseUp);
       window[NAME].MouseLeave && document.removeEventListener('mouseleave', window[NAME].MouseLeave);
       window[NAME].Resize && window.removeEventListener('resize', window[NAME].Resize);
@@ -119,24 +119,26 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     window[NAME].MouseUp = (e) => {
       clearTimeout(imgState.GropinTime);
       if (!imgState.Groped && e.button === 0) {
-        imgEL.onclick = undefined;
-        LightBox.onclick = e => (e.preventDefault(), e.target === imgEL || imgState.close());
+        img.onclick = undefined;
+        lightBox.onclick = persist !== true
+          ? (e) => (e.preventDefault(), e.target === img || imgState.close())
+          : lightBox._click;
         return;
       }
 
-      imgState.SnapBack(imgEL, LightBox);
+      imgState.SnapBack(img, lightBox);
       imgState.Groped = false;
-      imgEL.style.cursor = '';
-      zoomEnd?.();
+      img.style.cursor = '';
+      dragEnd?.();
       imgState.Axis = null;
     };
 
     window[NAME].MouseLeave = (e) => {
-      if (e.target !== LightBox && imgState.Groped) {
-        imgState.SnapBack(imgEL, LightBox);
+      if (e.target !== lightBox && imgState.Groped) {
+        imgState.SnapBack(img, lightBox);
         imgState.Groped = false;
-        imgEL.style.cursor = '';
-        zoomEnd?.();
+        img.style.cursor = '';
+        dragEnd?.();
         imgState.Axis = null;
       }
     };
@@ -144,10 +146,10 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     window[NAME].Resize = () => {
       clearTimeout(Resizer);
       Resizer = setTimeout(() => {
-        imgState.clamp(imgEL, LightBox);
-        imgEL.style.transition = 'none';
-        imgEL.getBoundingClientRect();
-        imgState.SnapBack(imgEL, LightBox, true);
+        imgState.clamp(img, lightBox);
+        img.style.transition = 'none';
+        img.getBoundingClientRect();
+        imgState.SnapBack(img, lightBox, true);
       }, 0);
     };
 
@@ -167,11 +169,11 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
 
     imgState.GropinTime = setTimeout(() => {
       imgState.Groped = true;
-      imgEL.style.transition = 'transform 100ms cubic-bezier(.16, .16, .16, 1)';
-      imgEL.style.cursor = 'grab';
+      img.style.transition = 'transform 100ms cubic-bezier(.16, .16, .16, 1)';
+      img.style.cursor = 'grab';
       imgState.lastX = e.clientX;
       imgState.lastY = e.clientY;
-      if (imgState.scale > MIN) zoomStart?.();
+      if (imgState.scale > MIN) dragStart?.();
     }, 100);
   },
 
@@ -179,15 +181,15 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     if (!imgState.Groped) return;
 
     e.preventDefault();
-    imgEL.onclick = (e) => e.stopPropagation();
-    LightBox.onclick = (e) => e.stopPropagation();
+    img.onclick = (e) => e.stopPropagation();
+    lightBox.onclick = (e) => e.stopPropagation();
 
-    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox),
+    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox),
     deltaX = e.clientX - imgState.lastX,
     deltaY = e.clientY - imgState.lastY;
 
     if (imgState.scale <= MIN) {
-      imgEL.style.transition = 'transform .15s ease-out';
+      img.style.transition = 'transform .15s ease-out';
       const moveX = e.clientX - imgState.lastX,
       moveY = e.clientY - imgState.lastY,
       snap = 50;
@@ -202,19 +204,19 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       imgState[offset] = Math.max(Math.min(imgState[offset], snap), -snap);
 
       const translate = X ? `translate(${imgState.offsetX}px, 0px)` : `translate(0px, ${imgState.offsetY}px)`;
-      imgEL.style.transform = `${translate} scale(${MIN})`;
+      img.style.transform = `${translate} scale(${MIN})`;
 
     } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
       imgState.offsetY += deltaY;
       const EdgeY = (imgELH - LightBoxH) / 2;
       imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapMouse), -EdgeY - imgState.SnapMouse);
-      imgEL.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+      img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
 
     } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
       imgState.offsetX += deltaX;
       const EdgeX = (imgELW - LightBoxW) / 2;
       imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapMouse), -EdgeX - imgState.SnapMouse);
-      imgEL.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+      img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
 
     } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
       imgState.offsetX += deltaX;
@@ -226,7 +228,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       const EdgeY = (imgELH - LightBoxH) / 2;
       imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapMouse), -EdgeY - imgState.SnapMouse);
 
-      imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+      img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
     }
 
     imgState.lastX = e.clientX;
@@ -237,12 +239,12 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     e.stopPropagation();
     e.preventDefault();
 
-    imgEL.style.transition = 'transform .3s cubic-bezier(.3, .6, .6, 1)';
+    img.style.transition = 'transform .3s cubic-bezier(.3, .6, .6, 1)';
 
     const CTRL = e.ctrlKey || e.metaKey,
       SHIFT = e.shiftKey,
-      centerX = LightBox.offsetWidth / 2,
-      centerY = LightBox.offsetHeight / 2,
+      centerX = lightBox.offsetWidth / 2,
+      centerY = lightBox.offsetHeight / 2,
       delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail)),
       zoomStep = 0.15,
       zoom = MIN + delta * zoomStep,
@@ -255,10 +257,10 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     }
 
     const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale,
-      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
+      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
 
     if (imgState.scale <= MIN) {
-      imgEL.style.transform = `translate(0px, 0px) scale(${MIN})`;
+      img.style.transform = `translate(0px, 0px) scale(${MIN})`;
 
     } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
       if (CTRL) {
@@ -271,7 +273,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       const EdgeY = (imgELH - LightBoxH) / 2;
       imgState.offsetY = Math.max(-EdgeY, Math.min(imgState.offsetY, EdgeY));
 
-      imgEL.style.transform = `translateY(${imgState.offsetY}px) scale(${SCALE})`;
+      img.style.transform = `translateY(${imgState.offsetY}px) scale(${SCALE})`;
 
     } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
       if (SHIFT) {
@@ -284,7 +286,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       const EdgeX = (imgELW - LightBoxW) / 2;
       imgState.offsetX = Math.max(-EdgeX, Math.min(imgState.offsetX, EdgeX));
 
-      imgEL.style.transform = `translateX(${imgState.offsetX}px) scale(${SCALE})`;
+      img.style.transform = `translateX(${imgState.offsetX}px) scale(${SCALE})`;
 
     } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
       if (CTRL) {
@@ -301,7 +303,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       imgState.offsetX = Math.max(-EdgeX, Math.min(imgState.offsetX, EdgeX));
       imgState.offsetY = Math.max(-EdgeY, Math.min(imgState.offsetY, EdgeY));
 
-      imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${SCALE})`;
+      img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${SCALE})`;
     }
   },
 
@@ -309,8 +311,8 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
 
   TouchStart = (e) => {
     e.stopPropagation();
-    imgEL.style.transition = 'none';
-    if (imgState.scale > MIN) zoomStart?.();
+    img.style.transition = 'none';
+    if (imgState.scale > MIN) dragStart?.();
 
     if (e.targetTouches[1]) {
       imgState.MultiGrope = true;
@@ -330,13 +332,13 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
   TouchMove = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    imgEL.onclick = (e) => e.stopPropagation();
+    img.onclick = (e) => e.stopPropagation();
 
     if (e.targetTouches[1]) {
       const currentDistance = touchDistance(e.targetTouches[0], e.targetTouches[1]),
         zoom = currentDistance / lastDistance,
-        centerX = LightBox.offsetWidth / 2,
-        centerY = LightBox.offsetHeight / 2,
+        centerX = lightBox.offsetWidth / 2,
+        centerY = lightBox.offsetHeight / 2,
         pinchCenterX = (e.targetTouches[0].clientX + e.targetTouches[1].clientX) / 2,
         pinchCenterY = (e.targetTouches[0].clientY + e.targetTouches[1].clientY) / 2,
         prevScale = imgState.scale;
@@ -344,11 +346,11 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
       imgState.scale = lastScale * zoom;
       imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
 
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
+      const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
 
       if (imgState.scale <= MIN) {
         imgState.offsetX = imgState.offsetY = 0;
-        imgEL.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
+        img.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
 
       } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
         const imgCenterY = imgState.offsetY + centerY;
@@ -358,7 +360,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
         if (imgState.offsetY > EdgeY) imgState.offsetY = EdgeY;
         else if (imgState.offsetY < -EdgeY) imgState.offsetY = -EdgeY;
 
-        imgEL.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+        img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
 
       } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
         const imgCenterX = imgState.offsetX + centerX;
@@ -368,7 +370,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
         if (imgState.offsetX > EdgeX) imgState.offsetX = EdgeX;
         else if (imgState.offsetX < -EdgeX) imgState.offsetX = -EdgeX;
 
-        imgEL.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+        img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
 
       } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
         const imgCenterX = imgState.offsetX + centerX, imgCenterY = imgState.offsetY + centerY;
@@ -384,34 +386,34 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
         if (imgState.offsetY > EdgeY) imgState.offsetY = EdgeY;
         else if (imgState.offsetY < -EdgeY) imgState.offsetY = -EdgeY;
 
-        imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+        img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
       }
 
     } else if (!imgState.TouchGrass.touchScale) {
-      imgEL.style.transition = 'transform 60ms ease';
+      img.style.transition = 'transform 60ms ease';
 
       const currentX = e.targetTouches[0].clientX,
         currentY = e.targetTouches[0].clientY,
         deltaX = (currentX - imgState.lastX) * imgState.dragSpeed,
         deltaY = (currentY - imgState.lastY) * imgState.dragSpeed,
 
-      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(imgEL, LightBox);
+      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
 
       if (imgState.scale <= MIN) {
         imgState.offsetX = imgState.offsetY = 0;
-        imgEL.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
+        img.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
 
       } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
         imgState.offsetY += deltaY;
         const EdgeY = (imgELH - LightBoxH) / 2;
         imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapTouch), -EdgeY - imgState.SnapTouch);
-        imgEL.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+        img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
 
       } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
         imgState.offsetX += deltaX;
         const EdgeX = (imgELW - LightBoxW) / 2;
         imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapTouch), -EdgeX - imgState.SnapTouch);
-        imgEL.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+        img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
 
       } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
         imgState.offsetX += deltaX;
@@ -421,7 +423,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
 
         imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapTouch), -EdgeX - imgState.SnapTouch);
         imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapTouch), -EdgeY - imgState.SnapTouch);
-        imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+        img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
       }
 
       imgState.lastX = currentX;
@@ -432,31 +434,31 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
   TouchCancel = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    zoomEnd?.();
-    imgEL.onclick = undefined;
+    dragEnd?.();
+    img.onclick = undefined;
     imgState.MultiGrope = false;
     imgState.TouchGrass.touchScale = false;
-    imgEL.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
-    imgState.SnapBack(imgEL, LightBox);
+    img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+    imgState.SnapBack(img, lightBox);
     imgState.Axis = null;
   },
 
   TouchEnd = (e) => {
     e.stopPropagation();
-    zoomEnd?.();
-    imgEL.onclick = undefined;
-    imgEL.style.transition = 'none';
+    dragEnd?.();
+    img.onclick = undefined;
+    img.style.transition = 'none';
     imgState.Axis = null;
 
     if (e.targetTouches.length === 0) {
       if (imgState.MultiGrope) imgState.MultiGrope = false; 
       imgState.TouchGrass.touchScale = false;
-      imgState.SnapBack(imgEL, LightBox);
+      imgState.SnapBack(img, lightBox);
       setTimeout(() => imgState.TouchGrass.touchScale = false, 10);
     }
   };
 
-  LightBox.ontouchmove = (e) => e.target !== imgEL && (e.stopPropagation(), e.preventDefault());
+  lightBox.ontouchmove = (e) => e.target !== img && (e.stopPropagation(), e.preventDefault());
 
   windowEvents(persist);
 
@@ -468,7 +470,7 @@ function SharedImageViewer(imgEL, LightBox, opts = {}) {
     ['touchmove', TouchMove],
     ['touchcancel', TouchCancel],
     ['touchend', TouchEnd],
-  ].forEach(([ev, fn, att]) => imgEL.addEventListener(ev, fn, att || false));
+  ].forEach(([ev, fn, att]) => img.addEventListener(ev, fn, att || false));
   }, 400);
 
   return { state: imgState };

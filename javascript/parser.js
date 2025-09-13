@@ -312,9 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
   `;
 
   if (/firefox/i.test(navigator.userAgent)) {
-    const bg = document.createElement('style');
-    bg.id = 'SD-Image-Scripts-Style';
-    bg.innerHTML = css;
-    document.body.append(bg);
+    document.body.append(Object.assign(document.createElement('style'), { id: 'SD-Image-Scripts-Style', textContent: css }));
   }
 });
