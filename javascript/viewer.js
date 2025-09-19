@@ -169,7 +169,7 @@ function SharedImageViewer(img, lightBox, opts = {}) {
 
     imgState.GropinTime = setTimeout(() => {
       imgState.Groped = true;
-      img.style.transition = 'transform 100ms cubic-bezier(.16, .16, .16, 1)';
+      img.style.transition = 'transform 80ms cubic-bezier(.1, .1, .1, 1)';
       img.style.cursor = 'grab';
       imgState.lastX = e.clientX;
       imgState.lastY = e.clientY;
@@ -475,3 +475,28 @@ function SharedImageViewer(img, lightBox, opts = {}) {
 
   return { state: imgState };
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const getRunningScript = () => new Error().stack.match(/file=[^ \n]*\.js/)?.[0],
+  path = getRunningScript()?.match(/file=[^\/]+\/[^\/]+\//)?.[0];
+
+  if (path) {
+    const noise = `${window.location.protocol}//${window.location.host}/${path}noise.png`,
+
+    css = `
+      :root {
+        --sd-image-scripts-noise: url('${noise}');
+      }
+    `,
+
+    img = new Image();
+    img.src = noise;
+
+    document.body.append(
+      Object.assign(document.createElement('style'), {
+        id: 'SD-Image-Scripts-Style',
+        textContent: css
+      })
+    );
+  }
+});
