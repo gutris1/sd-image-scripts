@@ -1,20 +1,25 @@
 from pathlib import Path
 import urllib.request
+import subprocess
+import requests
 
-from modules.launch_utils import run_git
-
-base = Path(__file__).parent
+p = Path(__file__).parent
 
 def req():
-    js = {
-        (base / 'javascript/exif-reader.js'): 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/dist/exif-reader.js',
-        (base / 'javascript/exif-reader-LICENSE'): 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/LICENSE'
+    try:
+        requests.get('https://github.com', timeout=3)
+    except requests.RequestException:
+        return
+
+    e = {
+        p / 'javascript/exif-reader.js': 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/dist/exif-reader.js',
+        p / 'javascript/exif-reader-LICENSE': 'https://raw.githubusercontent.com/mattiasw/ExifReader/main/LICENSE'
     }
 
-    for f, u in js.items():
+    for f, u in e.items():
         if not f.exists():
             f.write_bytes(urllib.request.urlopen(u).read())
 
-    run_git(str(base), base.name, 'pull', desc='', errdesc='')
+    subprocess.run(['git', 'pull', 'origin'], cwd=p, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 req()

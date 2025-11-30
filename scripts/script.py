@@ -9,13 +9,13 @@ API = 'https://civitai.com/api/v1'
 H = f'{API}/model-versions/by-hash/{{}}'
 S = 'https://civitai.com/search/models?sortBy=models_v9&query={}'
 
-V = cache.cache('sd_image_scripts')
+V = cache.cache('sd-image-scripts')
 
 async def Fetch(n, h, cv=False):
     k = f'{n}|{h}|{cv}'
     if k in V: return V[k]
 
-    nonlink = (f"<span class='sd-image-parser-nonlink'>{n}{'' if cv else f': {h}'}</span>")
+    nonlink = f"<span class='sd-image-scripts-nonlink'>{n}{'' if cv else f': {h}'}</span>"
 
     if not h:
         result = nonlink
@@ -29,35 +29,38 @@ async def Fetch(n, h, cv=False):
                 r = await p.get(H.format(t))
                 if r.status_code == 200:
                     d = r.json()
-                    if d.get('model', {}).get('name'):
+                    fN = d.get('model', {}).get('name')
+                    sN = d.get('name')
+                    if fN and sN:
+                        name = f'{fN} - {sN}'
                         result = (
-                            f"<a class='sd-image-parser-link' "
+                            f"<a class='sd-image-scripts-link' "
                             f"href='https://civitai.com/models/{d['modelId']}?modelVersionId={d['id']}' "
-                            f"target='_blank' tabindex='-1'>{d['model']['name']}</a>"
+                            f"target='_blank' tabindex='-1'>{name}</a>"
                         )
-
                         V[k] = result
                         return result
 
             except Exception: pass
             t = t[:-2]
 
-    result = nonlink if cv else f"<a class='sd-image-parser-link' href='{S.format(h)}' target='_blank' tabindex='-1'>{n}</a>"
+    result = nonlink if cv else f"<a class='sd-image-scripts-link' href='{S.format(h)}' target='_blank' tabindex='-1'>{n}</a>"
     V[k] = result
     return result
 
+
 def Result(l, m):
     return f"""
-      <div class='sd-image-parser-modeloutput-line'>
-        <div class='sd-image-parser-modeloutput-label'>{l}</div>
-        <div class='sd-image-parser-modeloutput-hashes'>{" ".join(m)}</div>
+      <div class='sd-image-scripts-modeloutput-line'>
+        <div class='sd-image-scripts-modeloutput-label'>{l}</div>
+        <div class='sd-image-scripts-modeloutput-hashes'>{" ".join(m)}</div>
       </div>
     """
 
 def app(_: gr.Blocks, app: FastAPI):
     @app.post('/sd-image-scripts-models-link')
-    async def models_link(request: Request):
-        d = await request.json()
+    async def _(req: Request):
+        d = await req.json()
         f = ''
 
         for c, i in d.items():
@@ -66,6 +69,6 @@ def app(_: gr.Blocks, app: FastAPI):
             m = [await Fetch(v['n'], v['h'], cv) for v in i]
             f += Result(c, m)
 
-        return {'html': f"<div id='SD-Image-Parser-Model-Output'>{f}</div>" if f else ''}
+        return {'html': f"<div id='SD-Image-Scripts-Model-Output'>{f}</div>" if f else ''}
 
 on_app_started(app)

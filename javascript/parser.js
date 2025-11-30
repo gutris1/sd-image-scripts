@@ -286,9 +286,9 @@ async function SharedModelsFetch(i, timeout = 60000) {
         const data = await r.json();
 
         setTimeout(() => {
-          ['sd-image-parser-modeloutput-label', 'sd-image-parser-modeloutput-hashes'].forEach(C => {
+          ['sd-image-scripts-modeloutput-label', 'sd-image-scripts-modeloutput-hashes'].forEach(C => {
             document.querySelectorAll(`.${C}`).forEach(el =>
-              el.classList.add('sd-image-parser-display')
+              el.classList.add('sd-image-scripts-display')
             );
           });
         }, 100);

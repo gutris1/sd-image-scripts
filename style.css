@@ -1,15 +1,18 @@
 :root {
-  --sd-img-parser-modeloutput-box-shadow: 0 0 4px 0 rgb(0 0 0 / 55%);
-  --sd-img-parser-modeloutput-background: rgb(255 255 255 / 20%);
-  --sd-img-parser-modeloutput-background-hover: rgb(255 255 255 / 50%);
+  --sd-img-scripts-modeloutput-shadow: 0 0 4px 0 rgb(0 0 0 / 55%);
+  --sd-img-scripts-modeloutput-bg: rgb(255 255 255 / 20%);
+  --sd-img-scripts-modeloutput-bg-hover: rgb(255 255 255 / 50%);
+  --sd-img-scripts-percent-shadow: 0 0 3px 0 var(--primary-400), inset 0 0 1px 1px var(--primary-400), inset 0 0 7px 0 var(--primary-400);
+  --sd-img-scripts-percent-bg: rgb(235 235 235 / 85%);
 }
 
 .dark {
-  --sd-img-parser-modeloutput-background: rgb(0 0 0 / 40%);
-  --sd-img-parser-modeloutput-background-hover: rgb(0 0 0 / 60%);
+  --sd-img-scripts-modeloutput-bg: rgb(0 0 0 / 40%);
+  --sd-img-scripts-modeloutput-bg-hover: rgb(0 0 0 / 60%);
+  --sd-img-scripts-percent-bg: rgb(18 18 18 / 80%);
 }
 
-#SD-Image-Parser-Model-Output {
+#SD-Image-Scripts-Model-Output {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -20,7 +23,7 @@
   transition: .3s ease;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-line {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-line {
   display: flex;
   gap: 8px;
   min-height: 36px;
@@ -28,8 +31,8 @@
   border-radius: 1rem;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label,
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
   display: flex;
   flex-wrap: wrap;
   word-wrap: break-word;
@@ -39,12 +42,12 @@
   transition: .3s ease, opacity 1s ease;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label.sd-image-parser-display,
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes.sd-image-parser-display {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label.sd-image-scripts-display,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes.sd-image-scripts-display {
   opacity: 1;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label {
   align-items: center;
   justify-content: center;
   line-height: 1.5;
@@ -57,7 +60,7 @@
   background-color: var(--input-background-fill);
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
   column-gap: 10px;
   row-gap: 8px;
   overflow-wrap: break-word;
@@ -68,12 +71,12 @@
   border: 0;
   border-radius: 0 1rem 1rem 0;
   padding: 4px 10px;
-  box-shadow: var(--sd-img-parser-modeloutput-box-shadow);
-  background: var(--sd-img-parser-modeloutput-background);
+  box-shadow: var(--sd-img-scripts-modeloutput-shadow);
+  background: var(--sd-img-scripts-modeloutput-bg);
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link,
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-nonlink {
   display: block;
   white-space: nowrap;
   text-decoration: none !important;
@@ -83,7 +86,6 @@
   font-weight: normal;
   line-height: 20px;
   min-height: 26px;
-  max-width: 50ch;
   margin: 0;
   border: 0 !important;
   color: var(--body-text-color) !important;
@@ -91,49 +93,197 @@
   outline: none;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {
-  background: var(--sd-img-parser-modeloutput-background-hover);
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes:hover {
+  background: var(--sd-img-scripts-modeloutput-bg-hover);
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link {
   --a: inset 0 0 0 1px !important;
   padding: 3px 6px;
   box-shadow: var(--a) var(--primary-500);
   background: var(--input-background-fill) !important;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link:hover {
   box-shadow: var(--a) transparent, 0 0 10px 0px var(--primary-400);
   color: var(--background-fill-primary) !important;
   background: var(--primary-400) !important;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-nonlink {
   word-wrap: break-word;
   padding: 3px;
 }
 
-#SDHub-Gallery-Tab .sdhub-gallery-imageinfo-display-model-output {
-  animation: undressBox 1.5s forwards ease;
-}
-
-@keyframes undressBox {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
 @media (max-width: 600px) {
-  #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
+  #SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label {
     min-width: calc(18% - 8px);
     width: calc(18% - 8px);
   }
 
-  #SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+  #SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
     min-width: 82%;
     width: 82%;
   }
+}
+
+/* ################################################################################################################################################################### */
+
+.sd-image-scripts-zoom-controller-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 10px;
+  right: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  height: 36px;
+  width: max-content;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  box-shadow: var(--sd-img-scripts-percent-shadow), 0 0 10px 0 #000;
+  color: var(--body-text-color);
+  background: var(--sd-img-scripts-percent-bg);
+  pointer-events: auto;
+}
+
+.sd-image-scripts-zoom-controller-fit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: 30px;
+  border-radius: 4px;
+  transition: .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-percentage {
+  display: flex;
+  height: 24px;
+  width: 90px;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list {
+  display: flex;
+  flex-direction: column-reverse;
+  list-style: none;
+  font-weight: normal;
+  position: absolute;
+  z-index: 1;
+  bottom: 4px;
+  height: 0;
+  width: 90px;
+  padding: 6px 0 12px 0;
+  margin: 0;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 0 15px 1px rgb(0 0 0 / 66%);
+  color: var(--body-text-color);
+  background: var(--input-background-fill);
+  opacity: 0;
+  transition: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list.open {
+  bottom: 25px;
+  opacity: 1;
+  transition: height .15s ease-out, bottom .5s ease, opacity .15s ease-out;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0;
+  margin: 0 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list li:hover {
+  box-shadow: 0 0 3px 0 #000;
+  color: var(--background-fill-primary);
+  background: var(--primary-400);
+}
+
+.sd-image-scripts-zoom-controller-percentage-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  position: absolute;
+  z-index: 2;
+  height: 24px;
+  width: 90px;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #393939;
+  background: var(--input-background-fill);
+}
+
+.sd-image-scripts-zoom-controller-percentage-number {
+  position: relative;
+  min-width: 48px;
+  max-width: 48px;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-arrow {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.sd-image-scripts-zoom-controller-percentage-arrow > svg {
+  transform: rotate(90deg);
+  transition: filter .2s ease, color .2s ease;
+}
+
+.sd-image-scripts-zoom-controller-percentage-arrow:hover > svg {
+  color: var(--primary-400);
+  filter: drop-shadow(0 0 2px var(--primary-400)) drop-shadow(0 0 6px var(--primary-400)) drop-shadow(0 0 5px var(--primary-400));
+}
+
+.sd-image-scripts-zoom-controller-slider {
+  display: flex;
+  position: relative;
+  height: 30px;
+  width: 150px;
+  cursor: pointer;
+  accent-color: var(--slider-color);
+  outline: none;
+}
+
+.sd-image-scripts-zoom-controller-min,
+.sd-image-scripts-zoom-controller-max {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 26px;
+  width: 26px;
+  border-radius: 4px;
+  transition: .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-fit:hover,
+.sd-image-scripts-zoom-controller-min:hover,
+.sd-image-scripts-zoom-controller-max:hover {
+  box-shadow: 0 0 5px 0 var(--primary-500);
+  color: var(--background-fill-primary);
+  background: var(--primary-400);
 }

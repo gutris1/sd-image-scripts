@@ -1,502 +1,895 @@
-function SharedImageViewer(img, lightBox, opts = {}) {
-  img.ondrag = img.ondragend = img.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
+class SDImageScriptsViewer {
+  constructor(img, lightBox, controls, opts = {}) {
+    this.img = img;
+    this.lightBox = lightBox;
+    this.controls = controls;
+    this.opts = opts;
 
-  let Resizer, lastDistance = 0, lastScale = 1;
+    img.ondrag = img.ondragend = img.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
 
-  const {
-    persist = null,
-    dragStart = null,
-    dragEnd = null,
-    exitStart = null,
-    exitEnd = null
-  } = opts,
+    this.resizer = null;
+    this.lastDistance = 0;
+    this.lastScale = 1;
+    this.MAX = 10;
+    this.MIN = 1.0001;
 
-  MIN = 1.0001,
-  MAX = 10,
+    const {
+      persist = null,
+      dragStart = null,
+      dragEnd = null,
+      exitStart = null,
+      exitEnd = null,
+      initDelay = null,
+      eventDelay = null
+    } = opts;
 
-  imgState = {
-    scale: 1.0001, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastLen: 1, LastTouch: 0, LastZoom: 0,
-    MoveMomentum: 0, SnapMouse: 30, SnapTouch: 10, dragSpeed: 1.5,
+    this.persist = persist;
+    this.dragStart = dragStart;
+    this.dragEnd = dragEnd;
+    this.exitStart = exitStart;
+    this.exitEnd = exitEnd;
+    this.initDelay = initDelay ?? 150;
+    this.eventDelay = eventDelay ?? 400;
 
-    GropinTime: null,
-    Groped: false,
-    Axis: null,
+    this.state = {
+      GropinTime: null, Groped: false, MultiGrope: false, Axis: null,
+      baseLine: 1, scale: 1.0001,
+      offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastLen: 1, LastTouch: 0, LastZoom: 0, MoveMomentum: 0,
+      SnapMouse: 30, SnapTouch: 10, dragSpeed: 1.5,
 
-    TouchGrass: {
-      touchScale: false, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0, 
-      delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0, scale: 1.0001
-    },
-
-    MultiGrope: false,
-
-    dimensions: function (img, lightBox) {
-      return {
-        imgELW: img.offsetWidth * this.scale, imgELH: img.offsetHeight * this.scale,
-        LightBoxW: lightBox.offsetWidth, LightBoxH: lightBox.offsetHeight
-      };
-    },
-
-    SnapBack: function (img, lightBox, resize = false) {
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(img, lightBox);
-
-      if (this.scale <= MIN) {
-        this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
-        img.style.transition = '';
-        img.style.transform = `scale(${this.scale})`;
-        return;
+      TouchGrass: {
+        touchScale: false,
+        scale: 1.0001, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0,
+        delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0
       }
+    };
 
-      let targetX = this.offsetX;
-      let targetY = this.offsetY;
+    this.initialize();
+  }
 
-      targetX = (imgELW <= LightBoxW) ? 0 : Math.max(-(imgELW - LightBoxW) / 2, Math.min((imgELW - LightBoxW) / 2, this.offsetX));
-      targetY = (imgELH <= LightBoxH) ? 0 : Math.max(-(imgELH - LightBoxH) / 2, Math.min((imgELH - LightBoxH) / 2, this.offsetY));
+  initialize() {
+    this.zoomControllers();
+    this.reset();
 
-      const changed = (targetX !== this.offsetX) || (targetY !== this.offsetY);
-      this.offsetX = targetX;
-      this.offsetY = targetY;
+    setTimeout(() => {
+      this.state.scale = this.imgSize();
+      this.zoomControls();
 
-      img.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s cubic-bezier(.3, .6, .6, 1)' : '';
-      requestAnimationFrame(() => img.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`);
+      const perNum = this.controls.querySelector('.sd-image-scripts-zoom-controller-percentage-number');
+      if (perNum && this.zoomNumList && typeof this._zoomList === 'function') this._zoomList(perNum, this.zoomNumList);
+    }, this.initDelay);
+
+    this.windowEvents();
+
+    setTimeout(() => {
+      this.addEvents();
+    }, this.eventDelay);
+  }
+
+  imgSize() {
+    if (!this.img.naturalWidth || !this.img.naturalHeight) {
+      this.state.baseLine = this.MIN;
+      return this.MIN;
+    }
+
+    const s = Math.min(
+      this.lightBox.offsetWidth / this.img.naturalWidth,
+      this.lightBox.offsetHeight / this.img.naturalHeight
+    );
+    this.state.baseLine = s >= 1 ? this.MIN : this.MIN / s;
+    return this.MIN;
+  }
+
+  percentage() {
+    return (this.state.scale / this.state.baseLine) * 100;
+  }
+
+  dimensions(scale = this.state.scale) {
+    return {
+      imgW: this.img.offsetWidth * scale,
+      imgH: this.img.offsetHeight * scale,
+      lightBoxW: this.lightBox.offsetWidth,
+      lightBoxH: this.lightBox.offsetHeight
+    };
+  }
+
+  fitting() {
+    if (!this.img.naturalWidth || !this.img.naturalHeight) return { fitW: 100, fitH: 100 };
+    const fitW = (this.lightBox.offsetWidth / this.img.naturalWidth) * 100;
+    const fitH = (this.lightBox.offsetHeight / this.img.naturalHeight) * 100;
+    return { fitW, fitH };
+  }
+
+  increase(n) {
+    if (n === 100) {
+      const { fitW, fitH } = this.fitting(), f = Math.min(fitW, fitH);
+      if (f > 100) return f;
+    }
+
+    return n < 100 && n % 10 !== 0 ? Math.ceil(n / 10) * 10 : n < 200 ? n + 10 : n < 400 ? n + 25 : n + 50;
+  }
+
+  decrease(n) {
+    const { fitW, fitH } = this.fitting(), f = Math.min(fitW, fitH);
+    return f > 100 && Math.abs(n - f) < 1 ? 100 : n <= 100 && n % 10 !== 0 ? Math.floor((n - 0.1) / 10) * 10 : n <= 200 ? n - 10 : n <= 400 ? n - 25 : n - 50;
+  }
+
+  zooming(v) {
+    this.img.style.transition = 'transform .35s cubic-bezier(.3,.6,.6,1)';
+
+    const a = (this.MIN / this.state.baseLine) * 100,
+    b = (this.MAX / this.state.baseLine) * 100,
+    c = Math.max(a, Math.min(v, b));
+
+    if (this.zoomSlider && +this.zoomSlider.value !== c) this.zoomSlider.value = c;
+    this.zoomPercentage(c);
+
+    const d = this.state.scale;
+    this.state.scale = (c / 100) * this.state.baseLine;
+
+    const { imgW: e, imgH: f, lightBoxW: g, lightBoxH: h } = this.dimensions(),
+    [i, j] = [this.lightBox.offsetWidth / 2, this.lightBox.offsetHeight / 2];
+
+    if (this.state.scale <= this.MIN) {
+      this.state.offsetX = this.state.offsetY = 0;
+      this.img.style.transform = `translate(0,0) scale(${this.MIN})`;
+      return;
+    }
+
+    const { fitW: k, fitH: l } = this.fitting(), m = Math.min(k, l),
+
+    n = (o, p, q, r) => {
+      const s = o + p;
+      const t = p - ((p - s) / d) * this.state.scale - p;
+      const u = (q - r) / 2;
+      return Math.max(-u, Math.min(t, u));
     },
 
-    clamp: function (img, lightBox) {
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = this.dimensions(img, lightBox);
-
-      const maxX = (imgELW - LightBoxW) / 2;
-      const maxY = (imgELH - LightBoxH) / 2;
-
-      this.offsetX = Math.max(-maxX, Math.min(maxX, this.offsetX));
-      this.offsetY = Math.max(-maxY, Math.min(maxY, this.offsetY));
+    w = (x, y, z, A) => {
+      const B = this.state[A];
+      const C = c <= m + 0.5;
+      if (x <= y) this.state[A] = 0;
+      else if (C && Math.abs(B) < 1) this.state[A] = 0;
+      else this.state[A] = n(B, z, x, y);
+      return `translate${A === 'offsetX' ? 'X' : 'Y'}(${this.state[A]}px)`;
     },
 
-    reset: function() {
-      this.scale = 1.0001; 
-      this.offsetX = this.offsetY = this.lastX = this.lastY = 0;
-      this.GropinTime = null;
-      this.Groped = false;
-      this.MultiGrope = false;
+    D = w(e, g, i, 'offsetX'),
+    E = w(f, h, j, 'offsetY');
 
-      Object.assign(this.TouchGrass, {
-        touchScale: false, last1X: 0, last1Y: 0, last2X: 0, last2Y: 0, 
-        delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0, scale: 1.0001
+    this.img.style.transform = `${D} ${E} scale(${this.state.scale})`;
+  }
+
+  zoomControls() {
+    const a = this.percentage();
+    this.zoomPercentage(a);
+    this.MAX = (800 / 100) * this.state.baseLine;
+
+    Object.assign(this.zoomSlider, {
+      min: Math.round((this.MIN / this.state.baseLine) * 100),
+      max: 800,
+      value: Math.round(a),
+      oninput: (b) => this.zooming(+b.target.value),
+      onmousedown: () => this.closeZoomList()
+    });
+
+    const c = (d) => {
+      let e, f, g = false;
+
+      return {
+        start: (h) => {
+          if (g) return;
+          g = true;
+          if (h) h.preventDefault();
+
+          const i = () => {
+            const j = +this.zoomSlider.value;
+            const k = d === this.increase.bind(this) ? d(j) : d(j);
+            if (k !== j) {
+              this.zoomSlider.value = k;
+              this.zooming(k);
+            }
+          };
+
+          i();
+          f = setTimeout(() => e = setInterval(i, 50), 500);
+        },
+
+        stop: () => {
+          g = false;
+          clearTimeout(f);
+          clearInterval(e);
+        }
+      };
+    };
+
+    const l = {
+      max: c(this.increase.bind(this)),
+      min: c(this.decrease.bind(this))
+    };
+
+    [this.zoomMax, this.zoomMin].forEach((m, n) => {
+      const o = n ? l.min : l.max;
+      const p = m.cloneNode(true);
+      m.replaceWith(p);
+      if (n) this.zoomMin = p; else this.zoomMax = p;
+
+      ['mousedown', 'touchstart'].forEach(q => {
+        p.addEventListener(q, (r) => {
+          r.preventDefault();
+          this.closeZoomList();
+          o.start(r);
+        });
       });
 
-      //img.style.transition = img.style.transform = img.style.cursor = '';
-    },
+      ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(q => {
+        p.addEventListener(q, () => o.stop());
+      });
 
-    close: function () {
-      exitStart?.();
+      p.addEventListener('dblclick', (r) => {
+        r.preventDefault();
+        o.stop();
+      });
+    });
+  }
 
-      setTimeout(() => {
-        lightBox.style.display = '';
-        img?.remove();
-        exitEnd?.();
+  displayZoomList() {
+    clearTimeout(this._zoomListTimer);
+    const z = this.zoomNumList;
+    z.classList.add('open');
+    z.style.pointerEvents = 'none';
+    this._zoomListTimer = setTimeout(() => {
+      z.style.height = `${z.scrollHeight - 18}px`;
+      this._zoomListTimer = setTimeout(() => {
+        z.style.pointerEvents = 'auto';
       }, 200);
+    }, 100);
+  }
+
+  closeZoomList() {
+    clearTimeout(this._zoomListTimer);
+    const z = this.zoomNumList;
+    z.classList.remove('open');
+    z.style.height = z.style.pointerEvents = '';
+  }
+
+  zoomControllers() {
+    const c = 'sd-image-scripts-zoom-controller',
+    svg = `
+    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 17C13.866 17 17 13.866 17 10C17 6.13401 13.866 3 10 3C6.13401 3 3 6.13401 3 10C3 13.866 6.13401 17 10 17Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20.9992 21L14.9492 14.95" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+    zoomOut = `${svg}<path d="M6 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    zoomIn  = `${svg}<path d="M6 10H14M10 6V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    zoomFit = `<svg width="24px" height="24px" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 25.546 16.875 C 25.159 16.875 24.843 17.191 24.843 17.578 L 24.843 21.095 L 21.327 21.095 C 20.939 21.095 20.625 21.41 20.625 21.799 C 20.625 22.187 20.939 22.501 21.327 22.501 L 25.546 22.501
+              C 25.934 22.501 26.248 22.187 26.248 21.799 L 26.248 17.578 C 26.248 17.191 25.934 16.875 25.546 16.875 Z M 25.546 7.499 L 21.327 7.499 C 20.939 7.499 20.625 7.815 20.625 8.202 C 20.625 8.59 20.939 8.904
+              21.327 8.904 L 24.843 8.904 L 24.843 12.421 C 24.843 12.809 25.159 13.124 25.546 13.124 C 25.934 13.124 26.248 12.809 26.248 12.421 L 26.248 8.202 C 26.248 7.815 25.934 7.499 25.546 7.499 Z M 8.672 7.499
+              L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.809 4.067 13.124 4.454 13.124 C 4.842 13.124 5.156 12.809 5.156 12.421 L 5.156 8.904 L 8.672 8.904 C 9.06 8.904 9.375 8.59 9.375
+              8.202 C 9.375 7.815 9.06 7.499 8.672 7.499 Z M 8.672 21.095 L 5.156 21.095 L 5.156 17.578 C 5.156 17.191 4.842 16.875 4.454 16.875 C 4.067 16.875 3.751 17.191 3.751 17.578 L 3.751 21.799 C 3.751 22.187 4.067
+              22.501 4.454 22.501 L 8.672 22.501 C 9.06 22.501 9.375 22.187 9.375 21.799 C 9.375 21.41 9.06 21.095 8.672 21.095 Z" fill="currentColor" stroke="none" stroke-width="1"/>
+              <rect x="1.427" y="5.579" width="27.147" height="18.842" rx="2" ry="2"
+              fill="none" stroke="currentColor" stroke-width="1.7"/>
+              </svg>`,
+    dropArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="arcs"><path d="M9 18l6-6-6-6"></path></svg>`,
+
+    f = () => {
+      this.closeZoomList();
+      const { fitW, fitH } = this.fitting(),
+      fit = Math.min(fitW, fitH);
+      this.state.offsetX = this.state.offsetY = 0;
+      this.state.scale = this.state.baseLine * (fit / 100);
+      this.img.style.transition = 'transform .4s cubic-bezier(.4, .8, .8, 1)';
+      this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
+      this.zoomPercentage(this.percentage());
+      if (this.zoomSlider) this.zoomSlider.value = fit;
+    };
+
+    this._zoomList = (n, l) => {
+      l.innerHTML = '';
+
+      const cp = Math.round(this.percentage());
+      const pl = [];
+
+      if (cp < 100) {
+        const s = (cp % 10 === 0) ? cp : Math.ceil(cp / 10) * 10;
+        for (let v = s; v <= 100; v += 10) pl.push(v);
+      } else {
+        pl.push(100);
+      }
+      for (let v = 200; v <= 800; v += 100) pl.push(v);
+
+      pl.forEach(v => {
+        const li = document.createElement('li');
+        li.textContent = `${v}%`;
+        li.dataset.value = v;
+        li.onclick = (e) => {
+          e.stopPropagation();
+          this.closeZoomList();
+          this.zooming(v);
+          n.textContent = `${v}%`;
+        };
+        l.appendChild(li);
+      });
+    };
+
+    let wrapper = this.controls.querySelector(`.${c}-wrapper`);
+    if (wrapper) {
+      this.zoomFit = wrapper.querySelector(`.${c}-fit`);
+      this.zoomFit.onclick = f;
+      const perNum = wrapper.querySelector(`.${c}-percentage-number`);
+      this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
+      const perList = wrapper.querySelector(`.${c}-percentage-list`);
+      this._zoomList(perNum, perList);
+      this.zoomNumList = perList;
+      this.zoomMin = wrapper.querySelector(`.${c}-min`);
+      this.zoomSlider = wrapper.querySelector(`.${c}-slider`);
+      this.zoomMax = wrapper.querySelector(`.${c}-max`);
+      return;
     }
-  };
 
-  imgState.reset();
+    wrapper = document.createElement('div');
+    wrapper.className = `${c}-wrapper`;
 
-  const getDimensions = (img, lightBox, scale = imgState.scale) => ({
-    imgELW: img.offsetWidth * scale, imgELH: img.offsetHeight * scale,
-    LightBoxW: lightBox.offsetWidth, LightBoxH: lightBox.offsetHeight
-  }),
+    const per = document.createElement('div');
+    per.className = `${c}-percentage`;
 
-  windowEvents = (persist) => {
-    const NAME = persist === true ? 'SDImageViewerEvents' : 'SharedImageEvents';
+    const perWrap = document.createElement('div');
+    perWrap.className = `${c}-percentage-wrapper`;
+
+    const perNum = document.createElement('div');
+    perNum.className = `${c}-percentage-number`;
+    this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
+
+    const perArrow = document.createElement('div');
+    perArrow.className = `${c}-percentage-arrow`;
+    perArrow.innerHTML = dropArrow;
+
+    const perList = document.createElement('ul');
+    perList.className = `${c}-percentage-list`;
+    this._zoomList(perNum, perList);
+    this.zoomNumList = perList;
+
+    const min = document.createElement('div');
+    min.className = `${c}-min`;
+    min.innerHTML = zoomOut;
+    this.zoomMin = min;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = `${c}-slider`;
+    this.zoomSlider = slider;
+
+    const max = document.createElement('div');
+    max.className = `${c}-max`;
+    max.innerHTML = zoomIn;
+    this.zoomMax = max;
+
+    const fitBtn = document.createElement('div');
+    fitBtn.className = `${c}-fit`;
+    fitBtn.innerHTML = zoomFit;
+    this.zoomFit = fitBtn;
+    this.zoomFit.onclick = f;
+
+    perWrap.append(perNum, perArrow);
+    per.append(perList, perWrap);
+    per.onclick = () => this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList();
+
+    wrapper.append(fitBtn, per, min, slider, max);
+    this.controls.append(wrapper);
+  }
+
+  snapBack(resize = false) {
+    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
+
+    if (this.state.scale <= this.MIN) {
+      this.state.offsetX = this.state.offsetY = this.state.lastX = this.state.lastY = 0;
+      this.img.style.transition = '';
+      this.img.style.transform = `scale(${this.state.scale})`;
+      return;
+    }
+
+    let X = (imgW <= lightBoxW) ? 0 : Math.max(-(imgW - lightBoxW) / 2, Math.min((imgW - lightBoxW) / 2, this.state.offsetX));
+    let Y = (imgH <= lightBoxH) ? 0 : Math.max(-(imgH - lightBoxH) / 2, Math.min((imgH - lightBoxH) / 2, this.state.offsetY));
+
+    const changed = (X !== this.state.offsetX) || (Y !== this.state.offsetY);
+    this.state.offsetX = X;
+    this.state.offsetY = Y;
+
+    this.img.style.transition = resize && changed ? 'none' : !resize ? 'transform .3s cubic-bezier(.3, .6, .6, 1)' : '';
+    requestAnimationFrame(() => this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${this.state.scale})`);
+  }
+
+  clamp() {
+    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
+    const maxX = (imgW - lightBoxW) / 2, maxY = (imgH - lightBoxH) / 2;
+    this.state.offsetX = Math.max(-maxX, Math.min(maxX, this.state.offsetX));
+    this.state.offsetY = Math.max(-maxY, Math.min(maxY, this.state.offsetY));
+  }
+
+  reset() {
+    this.state.baseLine = 1;
+    this.state.scale = this.imgSize();
+    this.state.offsetX = this.state.offsetY = this.state.lastX = this.state.lastY = 0;
+    this.state.GropinTime = this.state.Axis = null;
+    this.state.Groped = this.state.MultiGrope = false;
+
+    Object.assign(this.state.TouchGrass, {
+      touchScale: false,
+      last1X: 0,
+      last1Y: 0,
+      last2X: 0,
+      last2Y: 0,
+      delta1X: 0,
+      delta1Y: 0,
+      delta2X: 0,
+      delta2Y: 0,
+      scale: 1.0001
+    });
+
+    if (this.zoomSlider) this.zoomSlider.value = this.state.baseLine * 100;
+    if (this.percentage) this.percentage.textContent = `${Math.round(this.state.baseLine * 100)}%`;
+    this.zoomControls();
+    this.closeZoomList();
+  }
+
+  close() {
+    this.closeZoomList();
+    this.exitStart?.();
+    this.cleanup();
+
+    setTimeout(() => {
+      this.lightBox.style.display = '';
+      this.img?.remove();
+      this.exitEnd?.();
+    }, 200);
+  }
+
+  cleanup() {
+    const E = [
+      ['mousedown', this.mouseDown],
+      ['mousemove', this.mouseMove],
+      ['wheel', this.wheel, { passive: false }],
+      ['touchstart', this.touchStart],
+      ['touchmove', this.touchMove],
+      ['touchcancel', this.touchCancel],
+      ['touchend', this.touchEnd],
+    ];
+
+    E.forEach(([ev, fn, att]) => this.img?.removeEventListener(ev, fn, att || false));
+
+    if (this.persist !== true) {
+      const NAME = 'SharedImageEvents';
+      if (window[NAME]) {
+        window[NAME].MouseUp && document.removeEventListener('mouseup', window[NAME].MouseUp);
+        window[NAME].MouseLeave && document.removeEventListener('mouseleave', window[NAME].MouseLeave);
+        window[NAME].Resize && window.removeEventListener('resize', window[NAME].Resize);
+        delete window[NAME];
+      }
+    }
+
+    this.lightBox.touchMove = null;
+
+    clearTimeout(this.state.GropinTime);
+    clearTimeout(this.resizer);
+
+    this.reset();
+
+    if (this.zoomSlider) this.zoomSlider.oninput = null;
+    if (this.zoomMin) this.zoomMin.replaceWith(this.zoomMin.cloneNode(true));
+    if (this.zoomMax) this.zoomMax.replaceWith(this.zoomMax.cloneNode(true));
+    this.zoomSlider = this.zoomMin = this.zoomMax = null;
+  }
+
+  windowEvents() {
+    const NAME = this.persist === true ? 'SDImageViewerEvents' : 'SharedImageEvents';
     window[NAME] = window[NAME] || {};
 
-    if (persist !== true) {
-      lightBox.onclick = null;
+    if (this.persist !== true) {
+      this.lightBox.onclick = null;
       window[NAME].MouseUp && document.removeEventListener('mouseup', window[NAME].MouseUp);
       window[NAME].MouseLeave && document.removeEventListener('mouseleave', window[NAME].MouseLeave);
       window[NAME].Resize && window.removeEventListener('resize', window[NAME].Resize);
     }
 
-    if (persist === true && window[NAME].MouseUp) return;
+    if (this.persist === true && window[NAME].MouseUp) return;
 
     window[NAME].MouseUp = (e) => {
-      clearTimeout(imgState.GropinTime);
-      if (!imgState.Groped && e.button === 0) {
-        img.onclick = undefined;
-        lightBox.onclick = persist !== true
-          ? (e) => (e.preventDefault(), e.target === img || imgState.close())
-          : lightBox._click;
+      clearTimeout(this.state.GropinTime);
+
+      if (!this.state.Groped && e.button === 0) {
+        if (e.target === this.lightBox) {
+          this.lightBox.onclick = (ev) => {
+            if (ev.target === this.lightBox) {
+              ev.preventDefault();
+              if (this.persist !== true) {
+                this.close();
+              } else {
+                this.lightBox._click?.(ev);
+              }
+            }
+          };
+        } else {
+          this.lightBox.onclick = this.persist !== true ? null : this.lightBox._click;
+        }
         return;
       }
 
-      imgState.SnapBack(img, lightBox);
-      imgState.Groped = false;
-      img.style.cursor = '';
-      dragEnd?.();
-      imgState.Axis = null;
+      this.snapBack();
+      this.state.Groped = false;
+      this.img.style.cursor = '';
+      this.dragEnd?.();
+      this.state.Axis = null;
     };
 
     window[NAME].MouseLeave = (e) => {
-      if (e.target !== lightBox && imgState.Groped) {
-        imgState.SnapBack(img, lightBox);
-        imgState.Groped = false;
-        img.style.cursor = '';
-        dragEnd?.();
-        imgState.Axis = null;
+      if (e.target !== this.lightBox && this.state.Groped) {
+        this.snapBack();
+        this.state.Groped = false;
+        this.img.style.cursor = '';
+        this.dragEnd?.();
+        this.state.Axis = null;
       }
     };
 
     window[NAME].Resize = () => {
-      clearTimeout(Resizer);
-      Resizer = setTimeout(() => {
-        imgState.clamp(img, lightBox);
-        img.style.transition = 'none';
-        img.getBoundingClientRect();
-        imgState.SnapBack(img, lightBox, true);
+      clearTimeout(this.resizer);
+      this.resizer = setTimeout(() => {
+        this.clamp();
+        this.img.style.transition = 'none';
+        this.img.getBoundingClientRect();
+        this.snapBack(true);
+        this.zoomControls();
       }, 0);
     };
 
     setTimeout(() => {
       document.addEventListener('mouseleave', window[NAME].MouseLeave);
       window.addEventListener('resize', window[NAME].Resize);
-    }, 100);
+    }, this.initDelay);
 
     setTimeout(() => {
       document.addEventListener('mouseup', window[NAME].MouseUp);
-    }, 400);
-  },
+    }, this.eventDelay);
+  }
 
-  MouseDown = (e) => {
+  mouseDown = (e) => {
+    this.closeZoomList();
     if (e.button !== 0) return;
     e.preventDefault();
 
-    imgState.GropinTime = setTimeout(() => {
-      imgState.Groped = true;
-      img.style.transition = 'transform 80ms cubic-bezier(.1, .1, .1, 1)';
-      img.style.cursor = 'grab';
-      imgState.lastX = e.clientX;
-      imgState.lastY = e.clientY;
-      if (imgState.scale > MIN) dragStart?.();
+    this.state.GropinTime = setTimeout(() => {
+      this.state.Groped = true;
+      this.img.style.transition = 'transform 60ms cubic-bezier(0, 0, .1, 1)';
+      this.img.style.cursor = 'grab';
+      this.state.lastX = e.clientX;
+      this.state.lastY = e.clientY;
+      if (this.state.scale > this.MIN) this.dragStart?.();
     }, 100);
-  },
+  }
 
-  MouseMove = (e) => {
-    if (!imgState.Groped) return;
+  mouseMove = (e) => {
+    if (!this.state.Groped) return;
 
     e.preventDefault();
-    img.onclick = (e) => e.stopPropagation();
-    lightBox.onclick = (e) => e.stopPropagation();
+    this.img.onclick = (e) => e.stopPropagation();
+    this.lightBox.onclick = (e) => e.stopPropagation();
 
-    const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox),
-    deltaX = e.clientX - imgState.lastX,
-    deltaY = e.clientY - imgState.lastY;
+    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
+    const deltaX = e.clientX - this.state.lastX;
+    const deltaY = e.clientY - this.state.lastY;
 
-    if (imgState.scale <= MIN) {
-      img.style.transition = 'transform .15s ease-out';
-      const moveX = e.clientX - imgState.lastX,
-      moveY = e.clientY - imgState.lastY,
-      snap = 50;
+    if (this.state.scale <= this.MIN) {
+      this.img.style.transition = 'transform .15s cubic-bezier(.3, .3, .1, 1)';
+      const moveX = e.clientX - this.state.lastX;
+      const moveY = e.clientY - this.state.lastY;
+      const snap = 50;
 
-      if (!imgState.Axis) imgState.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
+      if (!this.state.Axis) this.state.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
 
-      const X = imgState.Axis === 'x',
-      offset = X ? 'offsetX' : 'offsetY',
-      delta = X ? moveX : moveY;
+      const X = this.state.Axis === 'x';
+      const offset = X ? 'offsetX' : 'offsetY';
+      const delta = X ? moveX : moveY;
 
-      imgState[offset] += delta;
-      imgState[offset] = Math.max(Math.min(imgState[offset], snap), -snap);
+      this.state[offset] += delta;
+      this.state[offset] = Math.max(Math.min(this.state[offset], snap), -snap);
 
-      const translate = X ? `translate(${imgState.offsetX}px, 0px)` : `translate(0px, ${imgState.offsetY}px)`;
-      img.style.transform = `${translate} scale(${MIN})`;
+      const translate = X ? `translate(${this.state.offsetX}px, 0px)` : `translate(0px, ${this.state.offsetY}px)`;
+      this.img.style.transform = `${translate} scale(${this.MIN})`;
 
-    } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
-      imgState.offsetY += deltaY;
-      const EdgeY = (imgELH - LightBoxH) / 2;
-      imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapMouse), -EdgeY - imgState.SnapMouse);
-      img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+    } else if (imgW <= lightBoxW && imgH >= lightBoxH) {
+      this.state.offsetY += deltaY;
+      const EdgeY = (imgH - lightBoxH) / 2;
+      this.state.offsetY = Math.max(Math.min(this.state.offsetY, EdgeY + this.state.SnapMouse), -EdgeY - this.state.SnapMouse);
+      this.img.style.transform = `translateY(${this.state.offsetY}px) scale(${this.state.scale})`;
 
-    } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
-      imgState.offsetX += deltaX;
-      const EdgeX = (imgELW - LightBoxW) / 2;
-      imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapMouse), -EdgeX - imgState.SnapMouse);
-      img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+    } else if (imgH <= lightBoxH && imgW >= lightBoxW) {
+      this.state.offsetX += deltaX;
+      const EdgeX = (imgW - lightBoxW) / 2;
+      this.state.offsetX = Math.max(Math.min(this.state.offsetX, EdgeX + this.state.SnapMouse), -EdgeX - this.state.SnapMouse);
+      this.img.style.transform = `translateX(${this.state.offsetX}px) scale(${this.state.scale})`;
 
-    } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
-      imgState.offsetX += deltaX;
-      imgState.offsetY += deltaY;
+    } else if (imgW >= lightBoxW && imgH >= lightBoxH) {
+      this.state.offsetX += deltaX;
+      this.state.offsetY += deltaY;
 
-      const EdgeX = (imgELW - LightBoxW) / 2;
-      imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapMouse), -EdgeX - imgState.SnapMouse);
+      const EdgeX = (imgW - lightBoxW) / 2;
+      this.state.offsetX = Math.max(Math.min(this.state.offsetX, EdgeX + this.state.SnapMouse), -EdgeX - this.state.SnapMouse);
 
-      const EdgeY = (imgELH - LightBoxH) / 2;
-      imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapMouse), -EdgeY - imgState.SnapMouse);
+      const EdgeY = (imgH - lightBoxH) / 2;
+      this.state.offsetY = Math.max(Math.min(this.state.offsetY, EdgeY + this.state.SnapMouse), -EdgeY - this.state.SnapMouse);
 
-      img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+      this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${this.state.scale})`;
     }
 
-    imgState.lastX = e.clientX;
-    imgState.lastY = e.clientY;
-  },
+    this.state.lastX = e.clientX;
+    this.state.lastY = e.clientY;
+  }
 
-  Wheel = (e) => {
+  wheel = (e) => {
     e.stopPropagation();
     e.preventDefault();
 
-    img.style.transition = 'transform .3s cubic-bezier(.3, .6, .6, 1)';
+    clearTimeout(this._wheely);
+    this._wheely = setTimeout(() => this.closeZoomList(), 200);
 
-    const CTRL = e.ctrlKey || e.metaKey,
-      SHIFT = e.shiftKey,
-      centerX = lightBox.offsetWidth / 2,
-      centerY = lightBox.offsetHeight / 2,
-      delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail)),
-      zoomStep = 0.15,
-      zoom = MIN + delta * zoomStep,
-      moveStep = 30 * imgState.scale,
-      lastScale = imgState.scale;
+    this.img.style.transition = 'transform .35s cubic-bezier(.3, .6, .6, 1)';
+
+    const CTRL = e.ctrlKey || e.metaKey;
+    const SHIFT = e.shiftKey;
+    const centerX = this.lightBox.offsetWidth / 2;
+    const centerY = this.lightBox.offsetHeight / 2;
+    const delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail));
+    const step = 1.125;
+    const moveStep = 30 * this.state.scale;
+    const lastScale = this.state.scale;
 
     if (!CTRL && !SHIFT) {
-      imgState.scale *= zoom;
-      imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
-    }
-
-    const SCALE = (CTRL || SHIFT) ? lastScale : imgState.scale,
-      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
-
-    if (imgState.scale <= MIN) {
-      img.style.transform = `translate(0px, 0px) scale(${MIN})`;
-
-    } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
-      if (CTRL) {
-        imgState.offsetY -= delta * moveStep;
-      } else {
-        const imgCenterY = imgState.offsetY + centerY;
-        imgState.offsetY = e.clientY - ((e.clientY - imgCenterY) / lastScale) * imgState.scale - centerY;
+      if (delta > 0) {
+        this.state.scale *= step;
+      } else if (delta < 0) {
+        this.state.scale /= step;
       }
 
-      const EdgeY = (imgELH - LightBoxH) / 2;
-      imgState.offsetY = Math.max(-EdgeY, Math.min(imgState.offsetY, EdgeY));
+      this.state.scale = Math.max(this.MIN, Math.min(this.state.scale, this.MAX));
+      this.zoomPercentage(this.percentage());
 
-      img.style.transform = `translateY(${imgState.offsetY}px) scale(${SCALE})`;
+      if (this.zoomSlider) {
+        this.zoomSlider.value = Math.round(this.percentage());
+      }
+    }
 
-    } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
+    const SCALE = (CTRL || SHIFT) ? lastScale : this.state.scale;
+    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
+
+    if (this.state.scale <= this.MIN) {
+      this.img.style.transform = `translate(0px, 0px) scale(${this.MIN})`;
+      this.state.offsetX = 0;
+      this.state.offsetY = 0;
+
+    } else if (imgW <= lightBoxW && imgH >= lightBoxH) {
+      if (CTRL) {
+        this.state.offsetY -= delta * moveStep;
+      } else {
+        const imgCenterY = this.state.offsetY + centerY;
+        this.state.offsetY = e.clientY - ((e.clientY - imgCenterY) / lastScale) * this.state.scale - centerY;
+      }
+
+      const EdgeY = (imgH - lightBoxH) / 2;
+      this.state.offsetY = Math.max(-EdgeY, Math.min(this.state.offsetY, EdgeY));
+
+      this.img.style.transform = `translateY(${this.state.offsetY}px) scale(${SCALE})`;
+
+    } else if (imgW <= lightBoxW && imgH <= lightBoxH) {
+      this.img.style.transform = `scale(${SCALE})`;
+
+    } else if (imgH <= lightBoxH && imgW >= lightBoxW) {
       if (SHIFT) {
-        imgState.offsetX -= delta * moveStep;
+        this.state.offsetX -= delta * moveStep;
       } else {
-        const imgCenterX = imgState.offsetX + centerX;
-        imgState.offsetX = e.clientX - ((e.clientX - imgCenterX) / lastScale) * imgState.scale - centerX;
+        const imgCenterX = this.state.offsetX + centerX;
+        this.state.offsetX = e.clientX - ((e.clientX - imgCenterX) / lastScale) * this.state.scale - centerX;
       }
 
-      const EdgeX = (imgELW - LightBoxW) / 2;
-      imgState.offsetX = Math.max(-EdgeX, Math.min(imgState.offsetX, EdgeX));
+      const EdgeX = (imgW - lightBoxW) / 2;
+      this.state.offsetX = Math.max(-EdgeX, Math.min(this.state.offsetX, EdgeX));
 
-      img.style.transform = `translateX(${imgState.offsetX}px) scale(${SCALE})`;
+      this.img.style.transform = `translateX(${this.state.offsetX}px) scale(${SCALE})`;
 
-    } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
+    } else if (imgW >= lightBoxW && imgH >= lightBoxH) {
       if (CTRL) {
-        imgState.offsetY -= delta * moveStep;
+        this.state.offsetY -= delta * moveStep;
       } else if (SHIFT) {
-        imgState.offsetX -= delta * moveStep;
+        this.state.offsetX -= delta * moveStep;
       } else {
-        const imgCenterX = imgState.offsetX + centerX, imgCenterY = imgState.offsetY + centerY;
-        imgState.offsetX = e.clientX - ((e.clientX - imgCenterX) / lastScale) * imgState.scale - centerX;
-        imgState.offsetY = e.clientY - ((e.clientY - imgCenterY) / lastScale) * imgState.scale - centerY;
+        const imgCenterX = this.state.offsetX + centerX;
+        const imgCenterY = this.state.offsetY + centerY;
+        this.state.offsetX = e.clientX - ((e.clientX - imgCenterX) / lastScale) * this.state.scale - centerX;
+        this.state.offsetY = e.clientY - ((e.clientY - imgCenterY) / lastScale) * this.state.scale - centerY;
       }
 
-      const EdgeX = (imgELW - LightBoxW) / 2, EdgeY = (imgELH - LightBoxH) / 2;
-      imgState.offsetX = Math.max(-EdgeX, Math.min(imgState.offsetX, EdgeX));
-      imgState.offsetY = Math.max(-EdgeY, Math.min(imgState.offsetY, EdgeY));
+      const EdgeX = (imgW - lightBoxW) / 2;
+      const EdgeY = (imgH - lightBoxH) / 2;
+      this.state.offsetX = Math.max(-EdgeX, Math.min(this.state.offsetX, EdgeX));
+      this.state.offsetY = Math.max(-EdgeY, Math.min(this.state.offsetY, EdgeY));
 
-      img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${SCALE})`;
+      this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${SCALE})`;
     }
-  },
+  }
 
-  touchDistance = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY),
+  touchDistance(t1, t2) {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  }
 
-  TouchStart = (e) => {
+  touchStart = (e) => {
     e.stopPropagation();
-    img.style.transition = 'none';
-    if (imgState.scale > MIN) dragStart?.();
+    this.closeZoomList();
+    this.img.style.transition = 'none';
+    if (this.state.scale > this.MIN) this.dragStart?.();
 
     if (e.targetTouches[1]) {
-      imgState.MultiGrope = true;
-      imgState.TouchGrass.touchScale = true;
-      lastDistance = touchDistance(e.targetTouches[0], e.targetTouches[1]);
-      lastScale = imgState.scale;
+      this.state.MultiGrope = true;
+      this.state.TouchGrass.touchScale = true;
+      this.lastDistance = this.touchDistance(e.targetTouches[0], e.targetTouches[1]);
+      this.lastScale = this.state.scale;
 
     } else {
-      imgState.MultiGrope = false;
-      if (!imgState.TouchGrass.touchScale) {
-        imgState.lastX = e.targetTouches[0].clientX;
-        imgState.lastY = e.targetTouches[0].clientY;
+      this.state.MultiGrope = false;
+      if (!this.state.TouchGrass.touchScale) {
+        this.state.lastX = e.targetTouches[0].clientX;
+        this.state.lastY = e.targetTouches[0].clientY;
       }
     }
-  },
+  }
 
-  TouchMove = (e) => {
+  touchMove = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    img.onclick = (e) => e.stopPropagation();
+    this.img.onclick = (e) => e.stopPropagation();
 
     if (e.targetTouches[1]) {
-      const currentDistance = touchDistance(e.targetTouches[0], e.targetTouches[1]),
-        zoom = currentDistance / lastDistance,
-        centerX = lightBox.offsetWidth / 2,
-        centerY = lightBox.offsetHeight / 2,
-        pinchCenterX = (e.targetTouches[0].clientX + e.targetTouches[1].clientX) / 2,
-        pinchCenterY = (e.targetTouches[0].clientY + e.targetTouches[1].clientY) / 2,
-        prevScale = imgState.scale;
+      const currentDistance = this.touchDistance(e.targetTouches[0], e.targetTouches[1]);
+      const zoom = currentDistance / this.lastDistance;
+      const centerX = this.lightBox.offsetWidth / 2;
+      const centerY = this.lightBox.offsetHeight / 2;
+      const pinchCenterX = (e.targetTouches[0].clientX + e.targetTouches[1].clientX) / 2;
+      const pinchCenterY = (e.targetTouches[0].clientY + e.targetTouches[1].clientY) / 2;
+      const prevScale = this.state.scale;
 
-      imgState.scale = lastScale * zoom;
-      imgState.scale = Math.max(MIN, Math.min(imgState.scale, MAX));
+      this.state.scale = this.lastScale * zoom;
+      this.state.scale = Math.max(this.MIN, Math.min(this.state.scale, this.MAX));
 
-      const { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
+      const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
 
-      if (imgState.scale <= MIN) {
-        imgState.offsetX = imgState.offsetY = 0;
-        img.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
+      if (this.state.scale <= this.MIN) {
+        this.state.offsetX = this.state.offsetY = 0;
+        this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
 
-      } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
-        const imgCenterY = imgState.offsetY + centerY;
-        imgState.offsetY = pinchCenterY - ((pinchCenterY - imgCenterY) / prevScale) * imgState.scale - centerY;
+      } else if (imgW <= lightBoxW && imgH >= lightBoxH) {
+        const imgCenterY = this.state.offsetY + centerY;
+        this.state.offsetY = pinchCenterY - ((pinchCenterY - imgCenterY) / prevScale) * this.state.scale - centerY;
 
-        const EdgeY = (imgELH - LightBoxH) / 2;
-        if (imgState.offsetY > EdgeY) imgState.offsetY = EdgeY;
-        else if (imgState.offsetY < -EdgeY) imgState.offsetY = -EdgeY;
+        const EdgeY = (imgH - lightBoxH) / 2;
+        if (this.state.offsetY > EdgeY) this.state.offsetY = EdgeY;
+        else if (this.state.offsetY < -EdgeY) this.state.offsetY = -EdgeY;
 
-        img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+        this.img.style.transform = `translateY(${this.state.offsetY}px) scale(${this.state.scale})`;
 
-      } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
-        const imgCenterX = imgState.offsetX + centerX;
-        imgState.offsetX = pinchCenterX - ((pinchCenterX - imgCenterX) / prevScale) * imgState.scale - centerX;
+      } else if (imgH <= lightBoxH && imgW >= lightBoxW) {
+        const imgCenterX = this.state.offsetX + centerX;
+        this.state.offsetX = pinchCenterX - ((pinchCenterX - imgCenterX) / prevScale) * this.state.scale - centerX;
 
-        const EdgeX = (imgELW - LightBoxW) / 2;
-        if (imgState.offsetX > EdgeX) imgState.offsetX = EdgeX;
-        else if (imgState.offsetX < -EdgeX) imgState.offsetX = -EdgeX;
+        const EdgeX = (imgW - lightBoxW) / 2;
+        if (this.state.offsetX > EdgeX) this.state.offsetX = EdgeX;
+        else if (this.state.offsetX < -EdgeX) this.state.offsetX = -EdgeX;
 
-        img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+        this.img.style.transform = `translateX(${this.state.offsetX}px) scale(${this.state.scale})`;
 
-      } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
-        const imgCenterX = imgState.offsetX + centerX, imgCenterY = imgState.offsetY + centerY;
+      } else if (imgW >= lightBoxW && imgH >= lightBoxH) {
+        const imgCenterX = this.state.offsetX + centerX;
+        const imgCenterY = this.state.offsetY + centerY;
 
-        imgState.offsetX = pinchCenterX - ((pinchCenterX - imgCenterX) / prevScale) * imgState.scale - centerX;
-        imgState.offsetY = pinchCenterY - ((pinchCenterY - imgCenterY) / prevScale) * imgState.scale - centerY;
+        this.state.offsetX = pinchCenterX - ((pinchCenterX - imgCenterX) / prevScale) * this.state.scale - centerX;
+        this.state.offsetY = pinchCenterY - ((pinchCenterY - imgCenterY) / prevScale) * this.state.scale - centerY;
 
-        const EdgeX = (imgELW - LightBoxW) / 2, EdgeY = (imgELH - LightBoxH) / 2;
+        const EdgeX = (imgW - lightBoxW) / 2;
+        const EdgeY = (imgH - lightBoxH) / 2;
 
-        if (imgState.offsetX > EdgeX) imgState.offsetX = EdgeX;
-        else if (imgState.offsetX < -EdgeX) imgState.offsetX = -EdgeX;
+        if (this.state.offsetX > EdgeX) this.state.offsetX = EdgeX;
+        else if (this.state.offsetX < -EdgeX) this.state.offsetX = -EdgeX;
 
-        if (imgState.offsetY > EdgeY) imgState.offsetY = EdgeY;
-        else if (imgState.offsetY < -EdgeY) imgState.offsetY = -EdgeY;
+        if (this.state.offsetY > EdgeY) this.state.offsetY = EdgeY;
+        else if (this.state.offsetY < -EdgeY) this.state.offsetY = -EdgeY;
 
-        img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+        this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${this.state.scale})`;
       }
 
-    } else if (!imgState.TouchGrass.touchScale) {
-      img.style.transition = 'transform 60ms ease';
+    } else if (!this.state.TouchGrass.touchScale) {
+      this.img.style.transition = 'transform 60ms ease';
 
-      const currentX = e.targetTouches[0].clientX,
-        currentY = e.targetTouches[0].clientY,
-        deltaX = (currentX - imgState.lastX) * imgState.dragSpeed,
-        deltaY = (currentY - imgState.lastY) * imgState.dragSpeed,
+      const currentX = e.targetTouches[0].clientX;
+      const currentY = e.targetTouches[0].clientY;
+      const deltaX = (currentX - this.state.lastX) * this.state.dragSpeed;
+      const deltaY = (currentY - this.state.lastY) * this.state.dragSpeed;
 
-      { imgELW, imgELH, LightBoxW, LightBoxH } = getDimensions(img, lightBox);
+      const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
 
-      if (imgState.scale <= MIN) {
-        imgState.offsetX = imgState.offsetY = 0;
-        img.style.transform = `translate(0px, 0px) scale(${imgState.scale})`;
+      if (this.state.scale <= this.MIN) {
+        this.state.offsetX = this.state.offsetY = 0;
+        this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
 
-      } else if (imgELW <= LightBoxW && imgELH >= LightBoxH) {
-        imgState.offsetY += deltaY;
-        const EdgeY = (imgELH - LightBoxH) / 2;
-        imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapTouch), -EdgeY - imgState.SnapTouch);
-        img.style.transform = `translateY(${imgState.offsetY}px) scale(${imgState.scale})`;
+      } else if (imgW <= lightBoxW && imgH >= lightBoxH) {
+        this.state.offsetY += deltaY;
+        const EdgeY = (imgH - lightBoxH) / 2;
+        this.state.offsetY = Math.max(Math.min(this.state.offsetY, EdgeY + this.state.SnapTouch), -EdgeY - this.state.SnapTouch);
+        this.img.style.transform = `translateY(${this.state.offsetY}px) scale(${this.state.scale})`;
 
-      } else if (imgELH <= LightBoxH && imgELW >= LightBoxW) {
-        imgState.offsetX += deltaX;
-        const EdgeX = (imgELW - LightBoxW) / 2;
-        imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapTouch), -EdgeX - imgState.SnapTouch);
-        img.style.transform = `translateX(${imgState.offsetX}px) scale(${imgState.scale})`;
+      } else if (imgH <= lightBoxH && imgW >= lightBoxW) {
+        this.state.offsetX += deltaX;
+        const EdgeX = (imgW - lightBoxW) / 2;
+        this.state.offsetX = Math.max(Math.min(this.state.offsetX, EdgeX + this.state.SnapTouch), -EdgeX - this.state.SnapTouch);
+        this.img.style.transform = `translateX(${this.state.offsetX}px) scale(${this.state.scale})`;
 
-      } else if (imgELW >= LightBoxW && imgELH >= LightBoxH) {
-        imgState.offsetX += deltaX;
-        imgState.offsetY += deltaY;
+      } else if (imgW >= lightBoxW && imgH >= lightBoxH) {
+        this.state.offsetX += deltaX;
+        this.state.offsetY += deltaY;
 
-        const EdgeX = (imgELW - LightBoxW) / 2, EdgeY = (imgELH - LightBoxH) / 2;
+        const EdgeX = (imgW - lightBoxW) / 2;
+        const EdgeY = (imgH - lightBoxH) / 2;
 
-        imgState.offsetX = Math.max(Math.min(imgState.offsetX, EdgeX + imgState.SnapTouch), -EdgeX - imgState.SnapTouch);
-        imgState.offsetY = Math.max(Math.min(imgState.offsetY, EdgeY + imgState.SnapTouch), -EdgeY - imgState.SnapTouch);
-        img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
+        this.state.offsetX = Math.max(Math.min(this.state.offsetX, EdgeX + this.state.SnapTouch), -EdgeX - this.state.SnapTouch);
+        this.state.offsetY = Math.max(Math.min(this.state.offsetY, EdgeY + this.state.SnapTouch), -EdgeY - this.state.SnapTouch);
+        this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${this.state.scale})`;
       }
 
-      imgState.lastX = currentX;
-      imgState.lastY = currentY;
+      this.state.lastX = currentX;
+      this.state.lastY = currentY;
     }
-  },
+  }
 
-  TouchCancel = (e) => {
+  touchCancel = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    dragEnd?.();
-    img.onclick = undefined;
-    imgState.MultiGrope = false;
-    imgState.TouchGrass.touchScale = false;
-    img.style.transform = `translate(${imgState.offsetX}px, ${imgState.offsetY}px) scale(${imgState.scale})`;
-    imgState.SnapBack(img, lightBox);
-    imgState.Axis = null;
-  },
+    this.dragEnd?.();
+    this.img.onclick = undefined;
+    this.state.MultiGrope = false;
+    this.state.TouchGrass.touchScale = false;
+    this.img.style.transform = `translate(${this.state.offsetX}px, ${this.state.offsetY}px) scale(${this.state.scale})`;
+    this.snapBack();
+    this.state.Axis = null;
+  }
 
-  TouchEnd = (e) => {
+  touchEnd = (e) => {
     e.stopPropagation();
-    dragEnd?.();
-    img.onclick = undefined;
-    img.style.transition = 'none';
-    imgState.Axis = null;
+    this.dragEnd?.();
+    this.img.onclick = undefined;
+    this.img.style.transition = 'none';
+    this.state.Axis = null;
 
     if (e.targetTouches.length === 0) {
-      if (imgState.MultiGrope) imgState.MultiGrope = false; 
-      imgState.TouchGrass.touchScale = false;
-      imgState.SnapBack(img, lightBox);
-      setTimeout(() => imgState.TouchGrass.touchScale = false, 10);
+      if (this.state.MultiGrope) this.state.MultiGrope = false;
+      this.state.TouchGrass.touchScale = false;
+      this.snapBack();
+      setTimeout(() => this.state.TouchGrass.touchScale = false, 10);
     }
-  };
-
-  lightBox.ontouchmove = (e) => e.target !== img && (e.stopPropagation(), e.preventDefault());
-
-  windowEvents(persist);
-
-  setTimeout(() => {[
-    ['mousedown', MouseDown],
-    ['mousemove', MouseMove],
-    ['wheel', Wheel, { passive: false }],
-    ['touchstart', TouchStart],
-    ['touchmove', TouchMove],
-    ['touchcancel', TouchCancel],
-    ['touchend', TouchEnd],
-  ].forEach(([ev, fn, att]) => img.addEventListener(ev, fn, att || false));
-  }, 400);
-
-  return { state: imgState };
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const getRunningScript = () => new Error().stack.match(/file=[^ \n]*\.js/)?.[0],
-  path = getRunningScript()?.match(/file=[^\/]+\/[^\/]+\//)?.[0];
-
-  if (path) {
-    const noise = `${window.location.protocol}//${window.location.host}/${path}noise.png`,
-
-    css = `
-      :root {
-        --sd-image-scripts-noise: url('${noise}');
-      }
-    `,
-
-    img = new Image();
-    img.src = noise;
-
-    document.body.append(
-      Object.assign(document.createElement('style'), {
-        id: 'SD-Image-Scripts-Style',
-        textContent: css
-      })
-    );
   }
-});
+
+  addEvents() {
+    this.lightBox.touchMove = (e) => {
+      this.closeZoomList();
+      if (e.target !== this.img) { e.stopPropagation(); e.preventDefault(); }
+    };
+
+    const E = [
+      ['mousedown', this.mouseDown],
+      ['mousemove', this.mouseMove],
+      ['wheel', this.wheel, { passive: false }],
+      ['touchstart', this.touchStart],
+      ['touchmove', this.touchMove],
+      ['touchcancel', this.touchCancel],
+      ['touchend', this.touchEnd],
+    ];
+
+    E.forEach(([ev, fn, att]) => this.img.addEventListener(ev, fn, att || false));
+  }
+}
