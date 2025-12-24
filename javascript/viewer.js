@@ -218,6 +218,7 @@ class SDImageScriptsViewer {
         p.addEventListener(q, (r) => {
           r.preventDefault();
           this.closeZoomList();
+          this.unfitImg();
           o.start(r);
         });
       });
@@ -235,28 +236,68 @@ class SDImageScriptsViewer {
 
   displayZoomList() {
     clearTimeout(this._zoomListTimer);
-    const z = this.zoomNumList;
-    z.classList.add('open');
-    z.style.pointerEvents = 'none';
+    this.zoomNumList.classList.add('open');
+    this.zoomNumList.style.pointerEvents = 'none';
     this._zoomListTimer = setTimeout(() => {
-      z.style.height = `${z.scrollHeight - 18}px`;
-      this._zoomListTimer = setTimeout(() => {
-        z.style.pointerEvents = 'auto';
-      }, 200);
+      this.zoomNumList.style.height = `${this.zoomNumList.scrollHeight - 18}px`;
+      this._zoomListTimer = setTimeout(() => this.zoomNumList.style.pointerEvents = 'auto', 200);
     }, 100);
   }
 
   closeZoomList() {
     clearTimeout(this._zoomListTimer);
-    const z = this.zoomNumList;
-    z.classList.remove('open');
-    z.style.height = z.style.pointerEvents = '';
+    this.zoomNumList.classList.remove('open');
+    this.zoomNumList.style.height = this.zoomNumList.style.pointerEvents = '';
+  }
+
+  zoomListOpen() {
+    return this.zoomNumList?.classList.contains('open');
+  }
+
+  fitImg = () => {
+    this.closeZoomList();
+    this.zoomFit?.classList.add('fitting');
+    const { fitW, fitH } = this.fitting(),
+    fit = Math.min(fitW, fitH);
+    this.state.offsetX = this.state.offsetY = 0;
+    this.state.scale = this.state.baseLine * (fit / 100);
+    this.img.style.transition = 'transform .4s cubic-bezier(.4, .8, .8, 1)';
+    this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
+    this.zoomPercentage(this.percentage());
+    if (this.zoomSlider) this.zoomSlider.value = fit;
+  };
+
+  unfitImg() {
+    this.zoomFit?.classList.remove('fitting');
+  }
+
+  fittedImg() {
+    return this.zoomFit?.classList.contains('fitting');
+  }
+
+  zoomTitles() {
+    const t = {
+      hide: 'Hide controllers',
+      fit: 'Fit image to screen',
+      per: 'Zoom percentage list',
+      min: 'Zoom out',
+      slider: 'Zoom level',
+      max: 'Zoom in'
+    };
+
+    this.hideBtn && (this.hideBtn.title = t.hide);
+    this.zoomFit && (this.zoomFit.title = t.fit);
+    this.per && (this.per.title = t.per);
+    this.zoomMin && (this.zoomMin.title = t.min);
+    this.zoomSlider && (this.zoomSlider.title = t.slider);
+    this.zoomMax && (this.zoomMax.title = t.max);
   }
 
   zoomControllers() {
+    let cd = false;
     const c = 'sd-image-scripts-zoom-controller',
     svg = `
-    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="26px" height="26px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 17C13.866 17 17 13.866 17 10C17 6.13401 13.866 3 10 3C6.13401 3 3 6.13401 3 10C3 13.866 6.13401 17 10 17Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M20.9992 21L14.9492 14.95" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
     zoomOut = `${svg}<path d="M6 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -268,21 +309,32 @@ class SDImageScriptsViewer {
               L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.809 4.067 13.124 4.454 13.124 C 4.842 13.124 5.156 12.809 5.156 12.421 L 5.156 8.904 L 8.672 8.904 C 9.06 8.904 9.375 8.59 9.375
               8.202 C 9.375 7.815 9.06 7.499 8.672 7.499 Z M 8.672 21.095 L 5.156 21.095 L 5.156 17.578 C 5.156 17.191 4.842 16.875 4.454 16.875 C 4.067 16.875 3.751 17.191 3.751 17.578 L 3.751 21.799 C 3.751 22.187 4.067
               22.501 4.454 22.501 L 8.672 22.501 C 9.06 22.501 9.375 22.187 9.375 21.799 C 9.375 21.41 9.06 21.095 8.672 21.095 Z" fill="currentColor" stroke="none" stroke-width="1"/>
-              <rect x="1.427" y="5.579" width="27.147" height="18.842" rx="2" ry="2"
-              fill="none" stroke="currentColor" stroke-width="1.7"/>
+              <rect x="0.965" y="5.258" width="28.071" height="19.484" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <ellipse cx="15" cy="15" rx="6" ry="6" fill="currentColor" stroke="currentColor"/>
               </svg>`,
-    dropArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="arcs"><path d="M9 18l6-6-6-6"></path></svg>`,
+    dropArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="arcs"><path d="M9 18l6-6-6-6"/></svg>`,
+    hideSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 512 512"><polygon fill="currentColor" points="95.936,214.656 256,378.016 416.064,214.656 366.096,165.856 256,278.208 145.904,165.856"/></svg>`,
 
-    f = () => {
+    hideControllers = () => {
+      if (cd) return;
       this.closeZoomList();
-      const { fitW, fitH } = this.fitting(),
-      fit = Math.min(fitW, fitH);
-      this.state.offsetX = this.state.offsetY = 0;
-      this.state.scale = this.state.baseLine * (fit / 100);
-      this.img.style.transition = 'transform .4s cubic-bezier(.4, .8, .8, 1)';
-      this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
-      this.zoomPercentage(this.percentage());
-      if (this.zoomSlider) this.zoomSlider.value = fit;
+      cd = true;
+      const h = box.classList.toggle(`${c}-hidden`);
+      if (h) {
+        box.style.overflow = 'hidden';
+        this.hideBtn.title = 'Display controllers';
+      }
+      setTimeout(() => {
+        if (!h) {
+          box.style.overflow = '';
+          this.hideBtn.title = 'Hide controllers';
+        }
+        cd = false;
+      }, 600);
+    },
+
+    perClick = () => {
+      this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList();
     };
 
     this._zoomList = (n, l) => {
@@ -306,6 +358,7 @@ class SDImageScriptsViewer {
         li.onclick = (e) => {
           e.stopPropagation();
           this.closeZoomList();
+          this.unfitImg();
           this.zooming(v);
           n.textContent = `${v}%`;
         };
@@ -313,70 +366,57 @@ class SDImageScriptsViewer {
       });
     };
 
-    let wrapper = this.controls.querySelector(`.${c}-wrapper`);
-    if (wrapper) {
+    let box, wrapper, hideBtn, fitBtn, per, perWrap, perNum, perArrow, perList, min, slider, max;
+
+    box = this.controls.querySelector(`.${c}-box`);
+    wrapper = this.controls.querySelector(`.${c}-wrapper`);
+
+    if (box && wrapper) {
+      this.hideBtn = hideBtn;
+      this.hideBtn.onclick = hideControllers;
       this.zoomFit = wrapper.querySelector(`.${c}-fit`);
-      this.zoomFit.onclick = f;
-      const perNum = wrapper.querySelector(`.${c}-percentage-number`);
+      this.zoomFit.onclick = this.fitImg;
+      this.per = per;
+      this.per.onclick = perClick;
+      perNum = wrapper.querySelector(`.${c}-percentage-number`);
       this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
-      const perList = wrapper.querySelector(`.${c}-percentage-list`);
+      perList = wrapper.querySelector(`.${c}-percentage-list`);
       this._zoomList(perNum, perList);
       this.zoomNumList = perList;
       this.zoomMin = wrapper.querySelector(`.${c}-min`);
       this.zoomSlider = wrapper.querySelector(`.${c}-slider`);
       this.zoomMax = wrapper.querySelector(`.${c}-max`);
+      this.zoomTitles();
       return;
     }
 
-    wrapper = document.createElement('div');
-    wrapper.className = `${c}-wrapper`;
+    [box, wrapper, hideBtn, fitBtn, per, perWrap, perNum, perArrow, perList, min, slider, max] = 
+    ['div','div','div','div','div','div','div','div','ul','div','input','div'].map(t => document.createElement(t));
 
-    const per = document.createElement('div');
-    per.className = `${c}-percentage`;
+    [
+      [box, 'box'], [hideBtn, 'hide-button', hideSvg], [wrapper, 'wrapper'], 
+      [per, 'percentage'], [perWrap, 'percentage-wrapper'], [perNum, 'percentage-number'], 
+      [perArrow, 'percentage-arrow', dropArrow], [perList, 'percentage-list'], 
+      [min, 'min', zoomOut], [max, 'max', zoomIn], [fitBtn, 'fit', zoomFit], [slider, 'slider']
+    ].forEach(([el, n, h]) => (el.className = `${c}-${n}`, h && (el.innerHTML = h)));
 
-    const perWrap = document.createElement('div');
-    perWrap.className = `${c}-percentage-wrapper`;
-
-    const perNum = document.createElement('div');
-    perNum.className = `${c}-percentage-number`;
+    this.hideBtn = hideBtn;
+    this.hideBtn.onclick = hideControllers;
+    this.zoomFit = fitBtn;
+    this.zoomFit.onclick = this.fitImg;
+    this.per = per;
+    this.per.onclick = perClick;
     this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
-
-    const perArrow = document.createElement('div');
-    perArrow.className = `${c}-percentage-arrow`;
-    perArrow.innerHTML = dropArrow;
-
-    const perList = document.createElement('ul');
-    perList.className = `${c}-percentage-list`;
     this._zoomList(perNum, perList);
     this.zoomNumList = perList;
-
-    const min = document.createElement('div');
-    min.className = `${c}-min`;
-    min.innerHTML = zoomOut;
     this.zoomMin = min;
-
-    const slider = document.createElement('input');
     slider.type = 'range';
-    slider.className = `${c}-slider`;
     this.zoomSlider = slider;
-
-    const max = document.createElement('div');
-    max.className = `${c}-max`;
-    max.innerHTML = zoomIn;
     this.zoomMax = max;
+    this.zoomTitles();
 
-    const fitBtn = document.createElement('div');
-    fitBtn.className = `${c}-fit`;
-    fitBtn.innerHTML = zoomFit;
-    this.zoomFit = fitBtn;
-    this.zoomFit.onclick = f;
-
-    perWrap.append(perNum, perArrow);
-    per.append(perList, perWrap);
-    per.onclick = () => this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList();
-
-    wrapper.append(fitBtn, per, min, slider, max);
-    this.controls.append(wrapper);
+    this.per.append(perList, (perWrap.append(perNum, perArrow), perWrap));
+    this.controls.appendChild(box).append(hideBtn, wrapper), wrapper.append(fitBtn, per, min, slider, max);
   }
 
   snapBack(resize = false) {
@@ -431,10 +471,12 @@ class SDImageScriptsViewer {
     if (this.percentage) this.percentage.textContent = `${Math.round(this.state.baseLine * 100)}%`;
     this.zoomControls();
     this.closeZoomList();
+    this.unfitImg();
   }
 
   close() {
     this.closeZoomList();
+    this.unfitImg();
     this.exitStart?.();
     this.cleanup();
 
@@ -631,7 +673,8 @@ class SDImageScriptsViewer {
     e.preventDefault();
 
     clearTimeout(this._wheely);
-    this._wheely = setTimeout(() => this.closeZoomList(), 200);
+    if (this.zoomListOpen()) this.closeZoomList();
+    if (this.fittedImg()) this.unfitImg();
 
     this.img.style.transition = 'transform .35s cubic-bezier(.3, .6, .6, 1)';
 

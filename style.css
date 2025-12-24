@@ -129,11 +129,12 @@
 
 /* ################################################################################################################################################################### */
 
-.sd-image-scripts-zoom-controller-wrapper {
+.sd-image-scripts-zoom-controller-box {
+  --c: var(--primary-400) !important;
+  --f: drop-shadow(0 0 2px var(--c)) drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 5px var(--c)) !important;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
   position: absolute;
   z-index: 1;
   bottom: 10px;
@@ -142,31 +143,77 @@
   font-size: 18px;
   font-weight: bold;
   line-height: 1;
-  height: 36px;
-  width: max-content;
+  height: 40px;
+  width: 420px;
   padding: 0 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 40px 10px 10px 40px;
   box-shadow: var(--sd-img-scripts-percent-shadow), 0 0 10px 0 #000;
   color: var(--body-text-color);
   background: var(--sd-img-scripts-percent-bg);
   pointer-events: auto;
+  transition: width .5s ease, padding 0s;
+}
+
+.sd-image-scripts-zoom-controller-hide-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 30px;
+  width: 40px;
+  cursor: pointer;
+  transition: right .5s ease;
+}
+
+.sd-image-scripts-zoom-controller-hide-button > svg {
+  height: 30px;
+  width: 30px;
+  border-radius: 4px;
+  transform: rotate(270deg);
+  transition: .2s ease, transform .4s ease, filter .2s ease, color .2s ease;
+}
+
+.sd-image-scripts-zoom-controller-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 10px;
+  position: absolute;
+  right: 10px;
+  height: 40px;
+  width: 380px;
+  overflow: visible;
+  border: 0;
+  padding: 0;
+  opacity: 1;
+  transition: .5s ease;
 }
 
 .sd-image-scripts-zoom-controller-fit {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  width: 30px;
+  height: 30px;
+  width: 36px;
   border-radius: 4px;
   transition: .2s ease;
   cursor: pointer;
 }
 
+.sd-image-scripts-zoom-controller-fit > svg > ellipse {
+  display: none;
+}
+
+.sd-image-scripts-zoom-controller-fit.fitting > svg > ellipse {
+  display: block;
+}
+
 .sd-image-scripts-zoom-controller-percentage {
   display: flex;
-  height: 24px;
+  height: 26px;
   width: 90px;
 }
 
@@ -193,7 +240,7 @@
 }
 
 .sd-image-scripts-zoom-controller-percentage-list.open {
-  bottom: 25px;
+  bottom: 28px;
   opacity: 1;
   transition: height .15s ease-out, bottom .5s ease, opacity .15s ease-out;
 }
@@ -214,7 +261,7 @@
 .sd-image-scripts-zoom-controller-percentage-list li:hover {
   box-shadow: 0 0 3px 0 #000;
   color: var(--background-fill-primary);
-  background: var(--primary-400);
+  background: var(--c);
 }
 
 .sd-image-scripts-zoom-controller-percentage-wrapper {
@@ -224,19 +271,25 @@
   gap: 5px;
   position: absolute;
   z-index: 2;
-  height: 24px;
+  height: 26px;
   width: 90px;
   border: 0;
   border-radius: 6px;
   box-shadow: 0 0 0 1px #393939;
   background: var(--input-background-fill);
+  transition: box-shadow .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-percentage-wrapper:hover {
+  box-shadow: 0 0 5px 1px var(--c);
+  cursor: pointer;
 }
 
 .sd-image-scripts-zoom-controller-percentage-number {
   position: relative;
   min-width: 48px;
   max-width: 48px;
-  cursor: default;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -252,9 +305,9 @@
   transition: filter .2s ease, color .2s ease;
 }
 
-.sd-image-scripts-zoom-controller-percentage-arrow:hover > svg {
-  color: var(--primary-400);
-  filter: drop-shadow(0 0 2px var(--primary-400)) drop-shadow(0 0 6px var(--primary-400)) drop-shadow(0 0 5px var(--primary-400));
+.sd-image-scripts-zoom-controller-percentage-wrapper:hover .sd-image-scripts-zoom-controller-percentage-arrow > svg {
+  color: var(--c);
+  filter: var(--f);
 }
 
 .sd-image-scripts-zoom-controller-slider {
@@ -273,17 +326,36 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  height: 26px;
-  width: 26px;
+  height: 30px;
+  width: 30px;
   border-radius: 4px;
   transition: .2s ease;
   cursor: pointer;
 }
 
+.sd-image-scripts-zoom-controller-hide-button:hover > svg,
 .sd-image-scripts-zoom-controller-fit:hover,
 .sd-image-scripts-zoom-controller-min:hover,
 .sd-image-scripts-zoom-controller-max:hover {
   box-shadow: 0 0 5px 0 var(--primary-500);
   color: var(--background-fill-primary);
-  background: var(--primary-400);
+  background: var(--c);
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden {
+  width: 40px;
+  padding: 0;
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden > .sd-image-scripts-zoom-controller-wrapper {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden > .sd-image-scripts-zoom-controller-hide-button > svg {
+  box-shadow: unset !important;
+  color: var(--c) !important;
+  background: transparent !important;
+  filter: var(--f);
+  transform: rotate(90deg);
 }
