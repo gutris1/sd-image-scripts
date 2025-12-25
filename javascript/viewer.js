@@ -294,6 +294,35 @@ class SDImageScriptsViewer {
   }
 
   zoomControllers() {
+    this._zoomList = (n, l) => {
+      l.innerHTML = '';
+
+      const cp = Math.round(this.percentage());
+      const pl = [];
+
+      if (cp < 100) {
+        const s = (cp % 10 === 0) ? cp : Math.ceil(cp / 10) * 10;
+        for (let v = s; v <= 100; v += 10) pl.push(v);
+      } else {
+        pl.push(100);
+      }
+      for (let v = 200; v <= 800; v += 100) pl.push(v);
+
+      pl.forEach(v => {
+        const li = document.createElement('li');
+        li.textContent = `${v}%`;
+        li.dataset.value = v;
+        li.onclick = (e) => {
+          e.stopPropagation();
+          this.closeZoomList();
+          this.unfitImg();
+          this.zooming(v);
+          n.textContent = `${v}%`;
+        };
+        l.appendChild(li);
+      });
+    };
+
     let cd = false;
     const c = 'sd-image-scripts-zoom-controller',
     svg = `
@@ -335,88 +364,55 @@ class SDImageScriptsViewer {
 
     perClick = () => {
       this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList();
+    },
+
+    q = (e, n) => e.querySelector(`.${c}-${n}`),
+    m = (t, n, h) => Object.assign(document.createElement(t), { className: `${c}-${n}`, innerHTML: h || '' }),
+
+    el = {
+      hide: m('div', 'hide-button', hideSvg),
+      fit: m('div', 'fit', zoomFit),
+      per: m('div', 'percentage'),
+      wrap: m('div', 'percentage-wrapper'),
+      num: m('div', 'percentage-number'),
+      arrow: m('div', 'percentage-arrow', dropArrow),
+      list: m('ul', 'percentage-list'),
+      min: m('div', 'min', zoomOut),
+      max: m('div', 'max', zoomIn),
+      slider: Object.assign(m('input', 'slider'), { type: 'range' })
     };
 
-    this._zoomList = (n, l) => {
-      l.innerHTML = '';
+    let box = q(this.controls, 'box'), wrapper = box && q(box, 'wrapper');
 
-      const cp = Math.round(this.percentage());
-      const pl = [];
+    if (!box || !wrapper) {
+      box = m('div', 'box');
+      wrapper = m('div', 'wrapper');
 
-      if (cp < 100) {
-        const s = (cp % 10 === 0) ? cp : Math.ceil(cp / 10) * 10;
-        for (let v = s; v <= 100; v += 10) pl.push(v);
-      } else {
-        pl.push(100);
-      }
-      for (let v = 200; v <= 800; v += 100) pl.push(v);
+      el.wrap.append(el.num, el.arrow);
+      el.per.append(el.list, el.wrap);
 
-      pl.forEach(v => {
-        const li = document.createElement('li');
-        li.textContent = `${v}%`;
-        li.dataset.value = v;
-        li.onclick = (e) => {
-          e.stopPropagation();
-          this.closeZoomList();
-          this.unfitImg();
-          this.zooming(v);
-          n.textContent = `${v}%`;
-        };
-        l.appendChild(li);
-      });
-    };
-
-    let box, wrapper, hideBtn, fitBtn, per, perWrap, perNum, perArrow, perList, min, slider, max;
-
-    box = this.controls.querySelector(`.${c}-box`);
-    wrapper = this.controls.querySelector(`.${c}-wrapper`);
-
-    if (box && wrapper) {
-      this.hideBtn = hideBtn;
-      this.hideBtn.onclick = hideControllers;
-      this.zoomFit = wrapper.querySelector(`.${c}-fit`);
-      this.zoomFit.onclick = this.fitImg;
-      this.per = per;
-      this.per.onclick = perClick;
-      perNum = wrapper.querySelector(`.${c}-percentage-number`);
-      this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
-      perList = wrapper.querySelector(`.${c}-percentage-list`);
-      this._zoomList(perNum, perList);
-      this.zoomNumList = perList;
-      this.zoomMin = wrapper.querySelector(`.${c}-min`);
-      this.zoomSlider = wrapper.querySelector(`.${c}-slider`);
-      this.zoomMax = wrapper.querySelector(`.${c}-max`);
-      this.zoomTitles();
-      return;
+      wrapper.append(el.fit, el.per, el.min, el.slider, el.max);
+      box.append(el.hide, wrapper);
+      this.controls.appendChild(box);
     }
 
-    [box, wrapper, hideBtn, fitBtn, per, perWrap, perNum, perArrow, perList, min, slider, max] = 
-    ['div','div','div','div','div','div','div','div','ul','div','input','div'].map(t => document.createElement(t));
+    this.hideBtn = q(box, 'hide-button');
+    this.zoomFit = q(wrapper, 'fit');
+    this.per = q(wrapper, 'percentage');
+    this.zoomMin = q(wrapper, 'min');
+    this.zoomSlider = q(wrapper, 'slider');
+    this.zoomMax = q(wrapper, 'max');
+    const perNum = q(wrapper, 'percentage-number'),
+    perList = q(wrapper, 'percentage-list');
 
-    [
-      [box, 'box'], [hideBtn, 'hide-button', hideSvg], [wrapper, 'wrapper'], 
-      [per, 'percentage'], [perWrap, 'percentage-wrapper'], [perNum, 'percentage-number'], 
-      [perArrow, 'percentage-arrow', dropArrow], [perList, 'percentage-list'], 
-      [min, 'min', zoomOut], [max, 'max', zoomIn], [fitBtn, 'fit', zoomFit], [slider, 'slider']
-    ].forEach(([el, n, h]) => (el.className = `${c}-${n}`, h && (el.innerHTML = h)));
-
-    this.hideBtn = hideBtn;
     this.hideBtn.onclick = hideControllers;
-    this.zoomFit = fitBtn;
     this.zoomFit.onclick = this.fitImg;
-    this.per = per;
     this.per.onclick = perClick;
-    this.zoomPercentage = (n) => (perNum.textContent = `${Math.round(n)}%`);
+    this.zoomPercentage = n => perNum.textContent = `${Math.round(n)}%`;
+
     this._zoomList(perNum, perList);
     this.zoomNumList = perList;
-    this.zoomMin = min;
-    slider.type = 'range';
-    this.zoomSlider = slider;
-    this.zoomMax = max;
     this.zoomTitles();
-
-    this.per.append(perList, (perWrap.append(perNum, perArrow), perWrap));
-    this.controls.appendChild(box).append(hideBtn, wrapper), wrapper.append(fitBtn, per, min, slider, max);
   }
 
   snapBack(resize = false) {
