@@ -1,100 +1,366 @@
 :root {
-  --parser-text-nonlink: #fff;
+  --sd-img-scripts-modeloutput-shadow: 0 0 4px 0 rgb(0 0 0 / 55%);
+  --sd-img-scripts-modeloutput-bg: rgb(255 255 255 / 20%);
+  --sd-img-scripts-modeloutput-bg-hover: rgb(255 255 255 / 50%);
+  --sd-img-scripts-percent-shadow: 0 0 3px 0 var(--primary-400), inset 0 0 1px 1px var(--primary-400), inset 0 0 7px 0 var(--primary-400);
+  --sd-img-scripts-percent-bg: rgb(235 235 235 / 85%);
 }
 
 .dark {
-  --parser-text-nonlink: var(--body-text-color);
+  --sd-img-scripts-modeloutput-bg: rgb(0 0 0 / 40%);
+  --sd-img-scripts-modeloutput-bg-hover: rgb(0 0 0 / 60%);
+  --sd-img-scripts-percent-bg: rgb(18 18 18 / 80%);
 }
 
-#SD-Image-Parser-Model-Output {
+#SD-Image-Scripts-Model-Output {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
   width: auto;
   height: auto;
   cursor: default;
   pointer-events: auto;
-  transition: 0.3s ease;
+  transition: .3s ease;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-line {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-line {
   display: flex;
+  gap: 8px;
+  min-height: 36px;
   padding: 0px;
-  gap: 0.5rem;
   border-radius: 1rem;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label,
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
   display: flex;
   flex-wrap: wrap;
   word-wrap: break-word;
   white-space: normal;
   box-sizing: border-box;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+  opacity: 0;
+  transition: .3s ease, opacity 1s ease;
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-label {
-  width: 16%;
-  background-color: var(--input-background-fill);
-  font-size: 15px;
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label.sd-image-scripts-display,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes.sd-image-scripts-display {
+  opacity: 1;
+}
+
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label {
   align-items: center;
   justify-content: center;
+  line-height: 1.5;
+  font-size: 15px;
+  min-width: calc(16% - 8px);
+  width: calc(16% - 8px);
+  border-top-left-radius: 1rem;
+  border-bottom-left-radius: 1rem;
+  box-shadow: 0 0 3px 1px #000;
+  background-color: var(--input-background-fill);
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes {
-  width: 84%;
-  overflow-wrap: break-word;
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
   column-gap: 10px;
-  padding: 3px 10px;
-  row-gap: 3px;
+  row-gap: 8px;
+  overflow-wrap: break-word;
+  align-items: center;
   position: relative;
-  align-items: flex-start;
+  min-width: 84%;
+  width: 84%;
   border: 0;
   border-radius: 0 1rem 1rem 0;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 0 10px 1px rgba(255, 255, 255, 0.3);
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
-  transition: background-color .5s ease;
+  padding: 4px 10px;
+  box-shadow: var(--sd-img-scripts-modeloutput-shadow);
+  background: var(--sd-img-scripts-modeloutput-bg);
 }
 
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes:hover {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link {
-  font-size: 13px;
-  color: var(--body-text-color) !important;
-  text-decoration: none !important;
-  border: 1px solid var(--primary-600) !important;
-  padding: 2px 7px;
-  margin: 3px 0;
-  background-color: var(--panel-background-fill) !important;
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link,
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-nonlink {
+  display: block;
   white-space: nowrap;
-  overflow: hidden;
+  text-decoration: none !important;
   text-overflow: ellipsis;
-  max-width: 50ch;
+  text-align: center;
+  font-size: 13px;
   font-weight: normal;
-  transition: 0.1s ease-out;
-}
-
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-link:hover {
-  color: #000 !important;
-  border-color: #000 !important;
-  background: var(--primary-400) !important;
-  box-shadow: 0 0 10px 0px var(--primary-400);
-  filter: drop-shadow(0 0 1px var(--primary-400));
-}
-
-#SD-Image-Parser-Model-Output .sd-image-parser-modeloutput-hashes .sd-image-parser-nonlink {
-  color: var(--parser-text-nonlink);
-  font-size: 14px;
-  border: 1px solid transparent;
-  padding: 2px 3px;
-  margin: 3px 0;
-  white-space: normal;
-  word-wrap: break-word;
+  line-height: 20px;
+  min-height: 26px;
+  margin: 0;
+  border: 0 !important;
+  color: var(--body-text-color) !important;
   overflow: hidden;
+  outline: none;
+}
+
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes:hover {
+  background: var(--sd-img-scripts-modeloutput-bg-hover);
+}
+
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link {
+  --a: inset 0 0 0 1px !important;
+  padding: 3px 6px;
+  box-shadow: var(--a) var(--primary-500);
+  background: var(--input-background-fill) !important;
+}
+
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-link:hover {
+  box-shadow: var(--a) transparent, 0 0 10px 0px var(--primary-400);
+  color: var(--background-fill-primary) !important;
+  background: var(--primary-400) !important;
+}
+
+#SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes .sd-image-scripts-nonlink {
+  word-wrap: break-word;
+  padding: 3px;
+}
+
+@media (max-width: 600px) {
+  #SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-label {
+    min-width: calc(18% - 8px);
+    width: calc(18% - 8px);
+  }
+
+  #SD-Image-Scripts-Model-Output .sd-image-scripts-modeloutput-hashes {
+    min-width: 82%;
+    width: 82%;
+  }
+}
+
+/* ################################################################################################################################################################### */
+
+.sd-image-scripts-zoom-controller-box {
+  --c: var(--primary-400) !important;
+  --f: drop-shadow(0 0 2px var(--c)) drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 5px var(--c)) !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: absolute;
+  z-index: 1;
+  bottom: 10px;
+  right: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  height: 40px;
+  width: 420px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 40px 10px 10px 40px;
+  box-shadow: var(--sd-img-scripts-percent-shadow), 0 0 10px 0 #000;
+  color: var(--body-text-color);
+  background: var(--sd-img-scripts-percent-bg);
+  pointer-events: auto;
+  transition: width .5s ease, padding 0s;
+}
+
+.sd-image-scripts-zoom-controller-hide-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 30px;
+  width: 40px;
+  cursor: pointer;
+  transition: right .5s ease;
+}
+
+.sd-image-scripts-zoom-controller-hide-button > svg {
+  height: 30px;
+  width: 30px;
+  border-radius: 4px;
+  transform: rotate(270deg);
+  transition: .2s ease, transform .4s ease, filter .2s ease, color .2s ease;
+}
+
+.sd-image-scripts-zoom-controller-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 10px;
+  position: absolute;
+  right: 10px;
+  height: 40px;
+  width: 380px;
+  overflow: visible;
+  border: 0;
+  padding: 0;
+  opacity: 1;
+  transition: .5s ease;
+}
+
+.sd-image-scripts-zoom-controller-fit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 36px;
+  border-radius: 4px;
+  transition: .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-fit > svg > ellipse {
+  display: none;
+}
+
+.sd-image-scripts-zoom-controller-fit.fitting > svg > ellipse {
+  display: block;
+}
+
+.sd-image-scripts-zoom-controller-percentage {
+  display: flex;
+  font-size: 16px;
+  height: 26px;
+  width: 90px;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list {
+  display: flex;
+  flex-direction: column-reverse;
+  list-style: none;
+  font-weight: normal;
+  position: absolute;
+  z-index: 1;
+  bottom: 4px;
+  height: 0;
+  width: 90px;
+  padding: 6px 0 12px 0;
+  margin: 0;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 0 15px 1px rgb(0 0 0 / 66%);
+  color: var(--body-text-color);
+  background: var(--input-background-fill);
+  opacity: 0;
+  transition: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list.open {
+  bottom: 28px;
+  opacity: 1;
+  transition: height .15s ease-out, bottom .5s ease, opacity .15s ease-out;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0;
+  margin: 0 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-list li:hover {
+  box-shadow: 0 0 3px 0 #000;
+  color: var(--background-fill-primary);
+  background: var(--c);
+}
+
+.sd-image-scripts-zoom-controller-percentage-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  position: absolute;
+  z-index: 2;
+  height: 26px;
+  width: 90px;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #393939;
+  background: var(--input-background-fill);
+  transition: box-shadow .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-percentage-wrapper:hover {
+  box-shadow: 0 0 5px 1px var(--c);
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-percentage-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 100%;
+  min-width: 48px;
+  max-width: 48px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sd-image-scripts-zoom-controller-percentage-arrow {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.sd-image-scripts-zoom-controller-percentage-arrow > svg {
+  transform: rotate(90deg);
+  transition: filter .2s ease, color .2s ease;
+}
+
+.sd-image-scripts-zoom-controller-percentage-wrapper:hover .sd-image-scripts-zoom-controller-percentage-arrow > svg {
+  color: var(--c);
+  filter: var(--f);
+}
+
+.sd-image-scripts-zoom-controller-slider {
+  display: flex;
+  position: relative;
+  height: 30px;
+  width: 150px;
+  cursor: pointer;
+  accent-color: var(--slider-color);
+  outline: none;
+}
+
+.sd-image-scripts-zoom-controller-min,
+.sd-image-scripts-zoom-controller-max {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 30px;
+  width: 30px;
+  border-radius: 4px;
+  transition: .2s ease;
+  cursor: pointer;
+}
+
+.sd-image-scripts-zoom-controller-hide-button:hover > svg,
+.sd-image-scripts-zoom-controller-fit:hover,
+.sd-image-scripts-zoom-controller-min:hover,
+.sd-image-scripts-zoom-controller-max:hover {
+  box-shadow: 0 0 5px 0 var(--primary-500);
+  color: var(--background-fill-primary);
+  background: var(--c);
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden {
+  width: 40px;
+  padding: 0;
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden > .sd-image-scripts-zoom-controller-wrapper {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden > .sd-image-scripts-zoom-controller-hide-button > svg {
+  box-shadow: unset !important;
+  color: var(--c) !important;
+  background: transparent !important;
+  filter: var(--f);
+  transform: rotate(90deg);
 }
