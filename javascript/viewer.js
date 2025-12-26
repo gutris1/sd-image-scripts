@@ -12,6 +12,8 @@ class SDImageScriptsViewer {
     this.lastScale = 1;
     this.MAX = 10;
     this.MIN = 1.0001;
+    this._unfitTimer = null;
+    this._wheely = null;
 
     const {
       persist = null,
@@ -169,8 +171,25 @@ class SDImageScriptsViewer {
       min: Math.round((this.MIN / this.state.baseLine) * 100),
       max: 800,
       value: Math.round(a),
-      oninput: (b) => this.zooming(+b.target.value),
-      onmousedown: () => this.closeZoomList()
+      oninput: (b) => {
+        clearTimeout(this._unfitTimer);
+        this._unfitTimer = setTimeout(() => this.unfitImg(), 10);
+        this.zooming(+b.target.value);
+      },
+      onmousedown: () => this.closeZoomList(),
+      onwheel: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        clearTimeout(this._unfitTimer);
+        this._unfitTimer = setTimeout(() => this.unfitImg(), 10);
+        const min = +this.zoomSlider.min,
+        max = +this.zoomSlider.max,
+        cur = +this.zoomSlider.value,
+        delta = -e.deltaY * 0.10,
+        next = Math.max(min, Math.min(max, cur + delta));
+        this.zooming(next);
+      }
     });
 
     const c = (d) => {
@@ -275,19 +294,27 @@ class SDImageScriptsViewer {
     return this.zoomFit?.classList.contains('fitting');
   }
 
+  translate(k, f) {
+    if (typeof SDHubGetTranslation === 'function') {
+      const t = SDHubGetTranslation(k);
+      return (t && t !== k) ? t : f;
+    }
+    return f;
+  }
+
   zoomTitles() {
     const t = {
-      hide: 'Hide controllers',
-      fit: 'Fit image to screen',
-      per: 'Zoom percentage list',
-      min: 'Zoom out',
-      slider: 'Zoom level',
-      max: 'Zoom in'
+      hide: this.translate('hid_cont', 'Hide controllers'),
+      fit: this.translate('fit_img', 'Fit image to screen'),
+      perwrap: this.translate('zlist', 'Zoom percentage list'),
+      min: this.translate('zout', 'Zoom out'),
+      slider: this.translate('zlev', 'Zoom level'),
+      max: this.translate('zin', 'Zoom in')
     };
 
     this.hideBtn && (this.hideBtn.title = t.hide);
     this.zoomFit && (this.zoomFit.title = t.fit);
-    this.per && (this.per.title = t.per);
+    this.perwrap && (this.perwrap.title = t.perwrap);
     this.zoomMin && (this.zoomMin.title = t.min);
     this.zoomSlider && (this.zoomSlider.title = t.slider);
     this.zoomMax && (this.zoomMax.title = t.max);
@@ -351,12 +378,12 @@ class SDImageScriptsViewer {
       const h = box.classList.toggle(`${c}-hidden`);
       if (h) {
         box.style.overflow = 'hidden';
-        this.hideBtn.title = 'Display controllers';
+        this.hideBtn.title = this.translate('dis_cont', 'Display controllers');
       }
       setTimeout(() => {
         if (!h) {
           box.style.overflow = '';
-          this.hideBtn.title = 'Hide controllers';
+          this.hideBtn.title = this.translate('hid_cont', 'Hide controllers');
         }
         cd = false;
       }, 600);
@@ -373,7 +400,7 @@ class SDImageScriptsViewer {
       hide: m('div', 'hide-button', hideSvg),
       fit: m('div', 'fit', zoomFit),
       per: m('div', 'percentage'),
-      wrap: m('div', 'percentage-wrapper'),
+      perwrap: m('div', 'percentage-wrapper'),
       num: m('div', 'percentage-number'),
       arrow: m('div', 'percentage-arrow', dropArrow),
       list: m('ul', 'percentage-list'),
@@ -388,8 +415,8 @@ class SDImageScriptsViewer {
       box = m('div', 'box');
       wrapper = m('div', 'wrapper');
 
-      el.wrap.append(el.num, el.arrow);
-      el.per.append(el.list, el.wrap);
+      el.perwrap.append(el.num, el.arrow);
+      el.per.append(el.list, el.perwrap);
 
       wrapper.append(el.fit, el.per, el.min, el.slider, el.max);
       box.append(el.hide, wrapper);
@@ -399,6 +426,7 @@ class SDImageScriptsViewer {
     this.hideBtn = q(box, 'hide-button');
     this.zoomFit = q(wrapper, 'fit');
     this.per = q(wrapper, 'percentage');
+    this.perwrap   = q(wrapper, 'percentage-wrapper');
     this.zoomMin = q(wrapper, 'min');
     this.zoomSlider = q(wrapper, 'slider');
     this.zoomMax = q(wrapper, 'max');
@@ -669,8 +697,12 @@ class SDImageScriptsViewer {
     e.preventDefault();
 
     clearTimeout(this._wheely);
-    if (this.zoomListOpen()) this.closeZoomList();
-    if (this.fittedImg()) this.unfitImg();
+    this._wheely = setTimeout(() => {
+      if (this.zoomListOpen()) this.closeZoomList();
+
+      clearTimeout(this._unfitTimer);
+      this._unfitTimer = setTimeout(() => this.unfitImg(), 10);
+    }, 50);
 
     this.img.style.transition = 'transform .35s cubic-bezier(.3, .6, .6, 1)';
 
