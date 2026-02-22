@@ -213,7 +213,7 @@ async function SharedModelsFetch(i, timeout = 60000) {
       vaeEX = i.match(/VAE:\s*([^,]+)/),
       vaeHashEX = i.match(/VAE hash:\s*([^,]+)/),
       loraHashEX = i.match(/Lora hashes:\s*"([^"]+)"/),
-      tiHashEX = i.match(/TI hashes:\s*"([^"]+)"/),
+      tiHashEX = i.match(/TI hashes:\s*"([^"]+)"/) || i.match(/TI:\s*"([^"]+)"/),
       hashesIndex = i.indexOf('Hashes:'),
       hashesEX = hashesIndex !== -1 ? i.slice(hashesIndex).match(/Hashes:\s*(\{.*?\})(,\s*)?/) : null;
 
