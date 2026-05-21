@@ -51,6 +51,16 @@ class SDImageScriptsViewer {
 
   initialize() {
     this.zoomControllers();
+
+    const box = this.controls.querySelector('.sd-image-scripts-zoom-controller-box');
+
+    if (
+      box &&
+      localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true'
+    ) {
+      box.classList.add('sd-image-scripts-zoom-controller-hidden');
+    }
+
     this.reset();
 
     setTimeout(() => {
@@ -58,7 +68,10 @@ class SDImageScriptsViewer {
       this.zoomControls();
 
       const perNum = this.controls.querySelector('.sd-image-scripts-zoom-controller-percentage-number');
-      if (perNum && this.zoomNumList && typeof this._zoomList === 'function') this._zoomList(perNum, this.zoomNumList);
+
+      if (perNum && this.zoomNumList && typeof this._zoomList === 'function') {
+        this._zoomList(perNum, this.zoomNumList);
+      }
     }, this.initDelay);
 
     this.windowEvents();
@@ -373,18 +386,24 @@ class SDImageScriptsViewer {
 
     hideControllers = () => {
       if (cd) return;
+
       this.closeZoomList();
       cd = true;
+
       const h = box.classList.toggle(`${c}-hidden`);
+      localStorage.setItem('SDImageInfoZoomControllerHidden', h);
+    
       if (h) {
         box.style.overflow = 'hidden';
         this.hideBtn.title = this.translate('dis_cont', 'Display controllers');
       }
+
       setTimeout(() => {
         if (!h) {
           box.style.overflow = '';
           this.hideBtn.title = this.translate('hid_cont', 'Hide controllers');
         }
+
         cd = false;
       }, 600);
     },
