@@ -5,9 +5,9 @@ import httpx
 from modules.script_callbacks import on_app_started
 from modules import cache
 
-API = 'https://civitai.com/api/v1'
+API = 'https://civitai.red/api/v1'
 H = f'{API}/model-versions/by-hash/{{}}'
-S = 'https://civitai.com/search/models?sortBy=models_v9&query={}'
+S = 'https://civitai.red/search/models?sortBy=models_v9&query={}'
 
 V = cache.cache('sd-image-scripts')
 
@@ -35,7 +35,7 @@ async def Fetch(n, h, cv=False):
                         name = f'{fN} - {sN}'
                         result = (
                             f"<a class='sd-image-scripts-link' "
-                            f"href='https://civitai.com/models/{d['modelId']}?modelVersionId={d['id']}' "
+                            f"href='https://civitai.red/models/{d['modelId']}?modelVersionId={d['id']}' "
                             f"target='_blank' tabindex='-1'>{name}</a>"
                         )
                         V[k] = result
