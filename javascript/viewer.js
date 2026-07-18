@@ -30,8 +30,8 @@ class SDImageScriptsViewer {
     this.dragEnd = dragEnd;
     this.exitStart = exitStart;
     this.exitEnd = exitEnd;
-    this.initDelay = initDelay ?? 150;
-    this.eventDelay = eventDelay ?? 400;
+    this.initDelay = initDelay ?? 100;
+    this.eventDelay = eventDelay ?? 150;
 
     this.state = {
       GropinTime: null, Groped: false, MultiGrope: false, Axis: null,
