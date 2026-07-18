@@ -353,17 +353,28 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     const perNum = q(wrapper, 'percentage-number'),
       perList = q(wrapper, 'percentage-list'),
 
-    updateController = (h) => {
+    updateController = (h, a = true) => {
       box.classList.toggle(`${c}-hidden`, h);
-
-      box.style.pointerEvents = 'none';
-      clearTimeout(this._pointer);
-      this._pointer = setTimeout(() => box.style.pointerEvents = '', 400);
 
       this.hideBtn.title = this.translate(
         h ? 'dis_cont' : 'hid_cont',
         h ? 'Display controllers' : 'Hide controllers'
       );
+
+      if (!a) {
+        box.style.pointerEvents = '';
+        box.style.overflow = h ? 'hidden' : '';
+        return;
+      }
+
+      box.style.pointerEvents = 'none';
+      box.style.overflow = 'hidden';
+
+      clearTimeout(this._controllerTimer);
+      this._controllerTimer = setTimeout(() => {
+        box.style.pointerEvents = '';
+        if (!h) box.style.overflow = '';
+      }, 400);
     },
 
     hideControllers = () => {
@@ -389,7 +400,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.zoomNumList = perList;
     this.zoomTitles();
 
-    updateController(localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true');
+    updateController(localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true', false);
   }
 
   displayZoomList() {
