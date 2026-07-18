@@ -483,7 +483,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.state.offsetY = Math.max(-maxY, Math.min(maxY, this.state.offsetY));
   }
 
-  reset() {
+  reset({ ui = true } = {}) {
     this.state.baseLine = 1;
     this.state.scale = this.imgSize();
     this.state.offsetX = this.state.offsetY = this.state.lastX = this.state.lastY = 0;
@@ -503,8 +503,11 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
       scale: 1.0001
     });
 
+    if (!ui) return;
+
     if (this.zoomSlider) this.zoomSlider.value = this.state.baseLine * 100;
     if (this.percentage) this.percentage.textContent = `${Math.round(this.state.baseLine * 100)}%`;
+
     this.zoomControls();
     this.closeZoomList();
     this.unfitImg();
@@ -551,7 +554,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     clearTimeout(this.state.GropinTime);
     clearTimeout(this.resizer);
 
-    this.reset();
+    this.reset({ ui: false });
 
     if (this.zoomSlider) this.zoomSlider.oninput = null;
     if (this.zoomMin) this.zoomMin.replaceWith(this.zoomMin.cloneNode(true));
