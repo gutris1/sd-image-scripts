@@ -51,16 +51,6 @@ class SDImageScriptsViewer {
 
   initialize() {
     this.zoomControllers();
-
-    const box = this.controls.querySelector('.sd-image-scripts-zoom-controller-box');
-
-    if (
-      box &&
-      localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true'
-    ) {
-      box.classList.add('sd-image-scripts-zoom-controller-hidden');
-    }
-
     this.reset();
 
     setTimeout(() => {
@@ -364,7 +354,9 @@ class SDImageScriptsViewer {
     };
 
     let cd = false;
+
     const c = 'sd-image-scripts-zoom-controller',
+
     svg = `
     <svg width="26px" height="26px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 17C13.866 17 17 13.866 17 10C17 6.13401 13.866 3 10 3C6.13401 3 3 6.13401 3 10C3 13.866 6.13401 17 10 17Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -372,45 +364,19 @@ class SDImageScriptsViewer {
     zoomOut = `${svg}<path d="M6 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     zoomIn  = `${svg}<path d="M6 10H14M10 6V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     zoomFit = `<svg width="24px" height="24px" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 25.546 16.875 C 25.159 16.875 24.843 17.191 24.843 17.578 L 24.843 21.095 L 21.327 21.095 C 20.939 21.095 20.625 21.41 20.625 21.799 C 20.625 22.187 20.939 22.501 21.327 22.501 L 25.546 22.501
-              C 25.934 22.501 26.248 22.187 26.248 21.799 L 26.248 17.578 C 26.248 17.191 25.934 16.875 25.546 16.875 Z M 25.546 7.499 L 21.327 7.499 C 20.939 7.499 20.625 7.815 20.625 8.202 C 20.625 8.59 20.939 8.904
-              21.327 8.904 L 24.843 8.904 L 24.843 12.421 C 24.843 12.809 25.159 13.124 25.546 13.124 C 25.934 13.124 26.248 12.809 26.248 12.421 L 26.248 8.202 C 26.248 7.815 25.934 7.499 25.546 7.499 Z M 8.672 7.499
-              L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.809 4.067 13.124 4.454 13.124 C 4.842 13.124 5.156 12.809 5.156 12.421 L 5.156 8.904 L 8.672 8.904 C 9.06 8.904 9.375 8.59 9.375
-              8.202 C 9.375 7.815 9.06 7.499 8.672 7.499 Z M 8.672 21.095 L 5.156 21.095 L 5.156 17.578 C 5.156 17.191 4.842 16.875 4.454 16.875 C 4.067 16.875 3.751 17.191 3.751 17.578 L 3.751 21.799 C 3.751 22.187 4.067
-              22.501 4.454 22.501 L 8.672 22.501 C 9.06 22.501 9.375 22.187 9.375 21.799 C 9.375 21.41 9.06 21.095 8.672 21.095 Z" fill="currentColor" stroke="none" stroke-width="1"/>
-              <rect x="0.965" y="5.258" width="28.071" height="19.484" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
-              <ellipse cx="15" cy="15" rx="6" ry="6" fill="currentColor" stroke="currentColor"/>
-              </svg>`,
+<path d="M 25.546 16.875 C 25.159 16.875 24.843 17.191 24.843 17.578 L 24.843 21.095 L 21.327 21.095 C 20.939 21.095 20.625 21.41 20.625 21.799 C 20.625 22.187 20.939 22.501 21.327 22.501 L 25.546 22.501
+C 25.934 22.501 26.248 22.187 26.248 21.799 L 26.248 17.578 C 26.248 17.191 25.934 16.875 25.546 16.875 Z M 25.546 7.499 L 21.327 7.499 C 20.939 7.499 20.625 7.815 20.625 8.202 C 20.625 8.59 20.939 8.904
+21.327 8.904 L 24.843 8.904 L 24.843 12.421 C 24.843 12.809 25.159 13.124 25.546 13.124 C 25.934 13.124 26.248 12.809 26.248 12.421 L 26.248 8.202 C 26.248 7.815 25.934 7.499 25.546 7.499 Z M 8.672 7.499
+L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.809 4.067 13.124 4.454 13.124 C 4.842 13.124 5.156 12.809 5.156 12.421 L 5.156 8.904 L 8.672 8.904 C 9.06 8.904 9.375 8.59 9.375
+8.202 C 9.375 7.815 9.06 7.499 8.672 7.499 Z M 8.672 21.095 L 5.156 21.095 L 5.156 17.578 C 5.156 17.191 4.842 16.875 4.454 16.875 C 4.067 16.875 3.751 17.191 3.751 17.578 L 3.751 21.799 C 3.751 22.187 4.067
+22.501 4.454 22.501 L 8.672 22.501 C 9.06 22.501 9.375 22.187 9.375 21.799 C 9.375 21.41 9.06 21.095 8.672 21.095 Z" fill="currentColor" stroke="none" stroke-width="1"/>
+<rect x="0.965" y="5.258" width="28.071" height="19.484" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<ellipse cx="15" cy="15" rx="6" ry="6" fill="currentColor" stroke="currentColor"/>
+</svg>`,
     dropArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="arcs"><path d="M9 18l6-6-6-6"/></svg>`,
     hideSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 512 512"><polygon fill="currentColor" points="95.936,214.656 256,378.016 416.064,214.656 366.096,165.856 256,278.208 145.904,165.856"/></svg>`,
 
-    hideControllers = () => {
-      if (cd) return;
-
-      this.closeZoomList();
-      cd = true;
-
-      const h = box.classList.toggle(`${c}-hidden`);
-      localStorage.setItem('SDImageInfoZoomControllerHidden', h);
-    
-      if (h) {
-        box.style.overflow = 'hidden';
-        this.hideBtn.title = this.translate('dis_cont', 'Display controllers');
-      }
-
-      setTimeout(() => {
-        if (!h) {
-          box.style.overflow = '';
-          this.hideBtn.title = this.translate('hid_cont', 'Hide controllers');
-        }
-
-        cd = false;
-      }, 600);
-    },
-
-    perClick = () => {
-      this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList();
-    },
+    perClick = () => this.zoomNumList.classList.contains('open') ? this.closeZoomList() : this.displayZoomList(),
 
     q = (e, n) => e.querySelector(`.${c}-${n}`),
     m = (t, n, h) => Object.assign(document.createElement(t), { className: `${c}-${n}`, innerHTML: h || '' }),
@@ -428,7 +394,8 @@ class SDImageScriptsViewer {
       slider: Object.assign(m('input', 'slider'), { type: 'range' })
     };
 
-    let box = q(this.controls, 'box'), wrapper = box && q(box, 'wrapper');
+    let box = q(this.controls, 'box'),
+      wrapper = box && q(box, 'wrapper');
 
     if (!box || !wrapper) {
       box = m('div', 'box');
@@ -445,12 +412,36 @@ class SDImageScriptsViewer {
     this.hideBtn = q(box, 'hide-button');
     this.zoomFit = q(wrapper, 'fit');
     this.per = q(wrapper, 'percentage');
-    this.perwrap   = q(wrapper, 'percentage-wrapper');
+    this.perwrap = q(wrapper, 'percentage-wrapper');
     this.zoomMin = q(wrapper, 'min');
     this.zoomSlider = q(wrapper, 'slider');
     this.zoomMax = q(wrapper, 'max');
+
     const perNum = q(wrapper, 'percentage-number'),
-    perList = q(wrapper, 'percentage-list');
+      perList = q(wrapper, 'percentage-list'),
+
+    updateController = (h) => {
+      box.classList.toggle(`${c}-hidden`, h);
+      box.style.overflow = h ? 'hidden' : '';
+      this.hideBtn.title = this.translate(
+        h ? 'dis_cont' : 'hid_cont',
+        h ? 'Display controllers' : 'Hide controllers'
+      );
+    },
+
+    hideControllers = () => {
+      if (cd) return;
+
+      this.closeZoomList();
+      cd = true;
+
+      const h = !box.classList.contains(`${c}-hidden`);
+      localStorage.setItem('SDImageInfoZoomControllerHidden', h);
+
+      updateController(h);
+
+      setTimeout(() => cd = false, 600);
+    };
 
     this.hideBtn.onclick = hideControllers;
     this.zoomFit.onclick = this.fitImg;
@@ -460,6 +451,8 @@ class SDImageScriptsViewer {
     this._zoomList(perNum, perList);
     this.zoomNumList = perList;
     this.zoomTitles();
+
+    updateController(localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true');
   }
 
   snapBack(resize = false) {
