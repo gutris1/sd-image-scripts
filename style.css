@@ -152,7 +152,8 @@
   color: var(--body-text-color);
   background: var(--sd-img-scripts-percent-bg);
   pointer-events: auto;
-  transition: width .5s ease, padding 0s;
+  transition: .2s ease, width .5s ease, padding 0s;
+  overflow: hidden;
 }
 
 .sd-image-scripts-zoom-controller-hide-button {
@@ -189,7 +190,7 @@
   border: 0;
   padding: 0;
   opacity: 1;
-  transition: .5s ease;
+  transition: 1s ease;
 }
 
 .sd-image-scripts-zoom-controller-fit {
@@ -352,8 +353,14 @@
   padding: 0;
 }
 
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden:hover {
+  background: var(--c);
+  filter: drop-shadow(0 0 5px var(--c));
+}
+
 .sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden > .sd-image-scripts-zoom-controller-wrapper {
   opacity: 0;
+  transition: .5s ease;
   pointer-events: none;
 }
 
@@ -361,6 +368,9 @@
   box-shadow: unset !important;
   color: var(--c) !important;
   background: transparent !important;
-  filter: var(--f);
   transform: rotate(90deg);
+}
+
+.sd-image-scripts-zoom-controller-box.sd-image-scripts-zoom-controller-hidden:hover > .sd-image-scripts-zoom-controller-hide-button > svg {
+  color: var(--sd-img-scripts-percent-bg) !important;
 }
