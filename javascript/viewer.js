@@ -256,73 +256,6 @@ class SDImageScriptsViewer {
     });
   }
 
-  displayZoomList() {
-    clearTimeout(this._zoomListTimer);
-    this.zoomNumList.classList.add('open');
-    this.zoomNumList.style.pointerEvents = 'none';
-    this._zoomListTimer = setTimeout(() => {
-      this.zoomNumList.style.height = `${this.zoomNumList.scrollHeight - 18}px`;
-      this._zoomListTimer = setTimeout(() => this.zoomNumList.style.pointerEvents = 'auto', 200);
-    }, 100);
-  }
-
-  closeZoomList() {
-    clearTimeout(this._zoomListTimer);
-    this.zoomNumList.classList.remove('open');
-    this.zoomNumList.style.height = this.zoomNumList.style.pointerEvents = '';
-  }
-
-  zoomListOpen() {
-    return this.zoomNumList?.classList.contains('open');
-  }
-
-  fitImg = () => {
-    this.closeZoomList();
-    this.zoomFit?.classList.add('fitting');
-    const { fitW, fitH } = this.fitting(),
-    fit = Math.min(fitW, fitH);
-    this.state.offsetX = this.state.offsetY = 0;
-    this.state.scale = this.state.baseLine * (fit / 100);
-    this.img.style.transition = 'transform .4s cubic-bezier(.4, .8, .8, 1)';
-    this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
-    this.zoomPercentage(this.percentage());
-    if (this.zoomSlider) this.zoomSlider.value = fit;
-  };
-
-  unfitImg() {
-    this.zoomFit?.classList.remove('fitting');
-  }
-
-  fittedImg() {
-    return this.zoomFit?.classList.contains('fitting');
-  }
-
-  translate(k, f) {
-    if (typeof SDHubGetTranslation === 'function') {
-      const t = SDHubGetTranslation(k);
-      return (t && t !== k) ? t : f;
-    }
-    return f;
-  }
-
-  zoomTitles() {
-    const t = {
-      hide: this.translate('hid_cont', 'Hide controllers'),
-      fit: this.translate('fit_img', 'Fit image to screen'),
-      perwrap: this.translate('zlist', 'Zoom percentage list'),
-      min: this.translate('zout', 'Zoom out'),
-      slider: this.translate('zlev', 'Zoom level'),
-      max: this.translate('zin', 'Zoom in')
-    };
-
-    this.hideBtn && (this.hideBtn.title = t.hide);
-    this.zoomFit && (this.zoomFit.title = t.fit);
-    this.perwrap && (this.perwrap.title = t.perwrap);
-    this.zoomMin && (this.zoomMin.title = t.min);
-    this.zoomSlider && (this.zoomSlider.title = t.slider);
-    this.zoomMax && (this.zoomMax.title = t.max);
-  }
-
   zoomControllers() {
     this._zoomList = (n, l) => {
       l.innerHTML = '';
@@ -422,7 +355,11 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
 
     updateController = (h) => {
       box.classList.toggle(`${c}-hidden`, h);
-      box.style.overflow = h ? 'hidden' : '';
+
+      box.style.pointerEvents = 'none';
+      clearTimeout(this._pointer);
+      this._pointer = setTimeout(() => box.style.pointerEvents = '', 400);
+
       this.hideBtn.title = this.translate(
         h ? 'dis_cont' : 'hid_cont',
         h ? 'Display controllers' : 'Hide controllers'
@@ -453,6 +390,73 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.zoomTitles();
 
     updateController(localStorage.getItem('SDImageInfoZoomControllerHidden') === 'true');
+  }
+
+  displayZoomList() {
+    clearTimeout(this._zoomListTimer);
+    this.zoomNumList.classList.add('open');
+    this.zoomNumList.style.pointerEvents = 'none';
+    this._zoomListTimer = setTimeout(() => {
+      this.zoomNumList.style.height = `${this.zoomNumList.scrollHeight - 18}px`;
+      this._zoomListTimer = setTimeout(() => this.zoomNumList.style.pointerEvents = 'auto', 200);
+    }, 100);
+  }
+
+  closeZoomList() {
+    clearTimeout(this._zoomListTimer);
+    this.zoomNumList.classList.remove('open');
+    this.zoomNumList.style.height = this.zoomNumList.style.pointerEvents = '';
+  }
+
+  zoomListOpen() {
+    return this.zoomNumList?.classList.contains('open');
+  }
+
+  fitImg = () => {
+    this.closeZoomList();
+    this.zoomFit?.classList.add('fitting');
+    const { fitW, fitH } = this.fitting(),
+    fit = Math.min(fitW, fitH);
+    this.state.offsetX = this.state.offsetY = 0;
+    this.state.scale = this.state.baseLine * (fit / 100);
+    this.img.style.transition = 'transform .4s cubic-bezier(.4, .8, .8, 1)';
+    this.img.style.transform = `translate(0px, 0px) scale(${this.state.scale})`;
+    this.zoomPercentage(this.percentage());
+    if (this.zoomSlider) this.zoomSlider.value = fit;
+  };
+
+  unfitImg() {
+    this.zoomFit?.classList.remove('fitting');
+  }
+
+  fittedImg() {
+    return this.zoomFit?.classList.contains('fitting');
+  }
+
+  translate(k, f) {
+    if (typeof SDHubGetTranslation === 'function') {
+      const t = SDHubGetTranslation(k);
+      return (t && t !== k) ? t : f;
+    }
+    return f;
+  }
+
+  zoomTitles() {
+    const t = {
+      hide: this.translate('hid_cont', 'Hide controllers'),
+      fit: this.translate('fit_img', 'Fit image to screen'),
+      perwrap: this.translate('zlist', 'Zoom percentage list'),
+      min: this.translate('zout', 'Zoom out'),
+      slider: this.translate('zlev', 'Zoom level'),
+      max: this.translate('zin', 'Zoom in')
+    };
+
+    this.hideBtn && (this.hideBtn.title = t.hide);
+    this.zoomFit && (this.zoomFit.title = t.fit);
+    this.perwrap && (this.perwrap.title = t.perwrap);
+    this.zoomMin && (this.zoomMin.title = t.min);
+    this.zoomSlider && (this.zoomSlider.title = t.slider);
+    this.zoomMax && (this.zoomMax.title = t.max);
   }
 
   snapBack(resize = false) {
