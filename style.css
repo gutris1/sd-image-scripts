@@ -12,6 +12,184 @@
   --sd-img-scripts-percent-bg: rgb(18 18 18 / 80%);
 }
 
+/* ################################################################################################################################################################### */
+
+#SDHub-Gallery-Image-Info-SendButton.sd-image-scripts-display-output-panel,
+#SDImageInfo-SendButton.sd-image-scripts-display-output-panel {
+  opacity: 1;
+  transition: opacity .6s ease;
+  pointer-events: auto;
+}
+
+/* ################################################################################################################################################################### */
+
+#SD-Image-Scripts-Output {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-wrap: break-word;
+  height: 100%;
+  max-width: 100%;
+  gap: 1rem !important;
+}
+
+#SD-Image-Scripts-Output.sd-image-scripts-default {
+  height: max-content !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-section {
+  color: var(--output-text-color);
+  border: 0;
+  margin: 0;
+  background: transparent;
+  filter: drop-shadow(0 0 2px #000);
+  cursor: default;
+  transition: .3s ease, filter 0s;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-models-section {
+  transition: height .3s ease;
+  filter: none !important;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-section:not(.sd-image-scripts-output-models-section) {
+  transition: .2s ease;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-section:not(.sd-image-scripts-output-models-section):hover {
+  filter: drop-shadow(0 0 2px var(--primary-400)) drop-shadow(0 0 2px var(--primary-400));
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-title {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  font-weight: bold;
+  cursor: default;
+  width: max-content;
+  font-size: 16px;
+  text-align: center;
+  color: var(--primary-400);
+  justify-content: flex-start;
+  margin: 0;
+  border: 0;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 4px 10px;
+  background: var(--input-background-fill);
+  pointer-events: auto;
+  transition: .2s ease;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-copybutton {
+  cursor: pointer;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-copybutton:hover {
+  color: var(--background-fill-primary);
+  background: var(--primary-400);
+  box-shadow: 0 0 4px 0px var(--primary-400);
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-seed-button {
+  color: var(--primary-400);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-seed-button:hover {
+  color: var(--primary-600) !important;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-wrapper {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: 0 .5rem .5rem .5rem;
+  background: var(--input-background-fill);
+  pointer-events: auto;
+  transition: .4s ease;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-content {
+  line-height: 1.7;
+  margin: 0;
+  padding: 5px 8px;
+  border: 0;
+  cursor: default;
+  border-radius: 0 .5rem .5rem .5rem;
+  transition: .3s ease;
+}
+
+#SD-Image-Scripts-Output .sd-image-scripts-output-content.sd-image-scripts-style {
+  --a: inset 0 0 0 0 transparent !important;
+  --b: inset 0 0 1px 1px var(--primary-400) !important;
+  animation: sd-image-scripts-pulseBorder 2s infinite alternate forwards;
+}
+
+@keyframes sd-image-scripts-pulseBorder {
+  0% {
+    box-shadow: var(--a), var(--a);
+  }
+  25% {
+    box-shadow: var(--b), inset 0 0 15px 2px var(--primary-400);
+  }
+  50% {
+    box-shadow: var(--b), inset 0 0 3px 1px var(--primary-400);
+  }
+  75% {
+    box-shadow: var(--b), inset 0 0 15px 2px var(--primary-400);
+  }
+  100% {
+    box-shadow: var(--a), var(--a);
+  }
+}
+
+#SD-Image-Scripts-Spinner-Wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 70px;
+  width: 100%;
+  margin: 0;
+  margin-bottom: 10px;
+}
+
+#SD-Image-Scripts-Spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 80px;
+  width: 80px;
+  margin: 0;
+  padding: 0;
+  animation: sd-image-scripts-spinner 1.5s linear infinite;
+}
+
+@keyframes sd-image-scripts-spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+#SD-Image-Scripts-Spinner > svg {
+  height: 100%;
+  width: 100%;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 90%)) drop-shadow(0 0 10px rgb(0 0 0 / 60%)) drop-shadow(0 0 1px var(--primary-400));
+}
+
+#SD-Image-Scripts-Spinner path,
+#SD-Image-Scripts-Spinner polygon {
+  fill: var(--primary-400);
+}
+
 #SD-Image-Scripts-Model-Output {
   display: flex;
   flex-direction: column;
