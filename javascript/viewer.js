@@ -7,22 +7,17 @@ class SDImageScriptsViewer {
 
     img.ondrag = img.ondragend = img.ondragstart = (e) => (e.stopPropagation(), e.preventDefault());
 
-    this.resizer = null;
+    this.resizer = this._unfitTimer = this._wheely= null;
     this.lastDistance = 0;
     this.lastScale = 1;
     this.MAX = 10;
     this.MIN = 1.0001;
-    this._unfitTimer = null;
-    this._wheely = null;
 
     const {
       persist = null,
-      dragStart = null,
-      dragEnd = null,
-      exitStart = null,
-      exitEnd = null,
-      initDelay = null,
-      eventDelay = null
+      dragStart = null, dragEnd = null,
+      exitStart = null, exitEnd = null,
+      initDelay = null, eventDelay = null
     } = opts;
 
     this.persist = persist;
@@ -58,17 +53,12 @@ class SDImageScriptsViewer {
       this.zoomControls();
 
       const perNum = this.controls.querySelector('.sd-image-scripts-zoom-controller-percentage-number');
-
-      if (perNum && this.zoomNumList && typeof this._zoomList === 'function') {
-        this._zoomList(perNum, this.zoomNumList);
-      }
+      if (perNum && this.zoomNumList && typeof this._zoomList === 'function') this._zoomList(perNum, this.zoomNumList);
     }, this.initDelay);
 
     this.windowEvents();
 
-    setTimeout(() => {
-      this.addEvents();
-    }, this.eventDelay);
+    setTimeout(() => this.addEV(), this.eventDelay);
   }
 
   imgSize() {
@@ -506,16 +496,9 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.state.Groped = this.state.MultiGrope = false;
 
     Object.assign(this.state.TouchGrass, {
-      touchScale: false,
-      last1X: 0,
-      last1Y: 0,
-      last2X: 0,
-      last2Y: 0,
-      delta1X: 0,
-      delta1Y: 0,
-      delta2X: 0,
-      delta2Y: 0,
-      scale: 1.0001
+      touchScale: false, scale: 1.0001,
+      last1X: 0, last1Y: 0, last2X: 0, last2Y: 0,
+      delta1X: 0, delta1Y: 0, delta2X: 0, delta2Y: 0
     });
 
     if (!ui) return;
@@ -532,49 +515,13 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.closeZoomList();
     this.unfitImg();
     this.exitStart?.();
-    this.cleanup();
+    this.clearEV();
 
     setTimeout(() => {
       this.lightBox.style.display = '';
       this.img?.remove();
       this.exitEnd?.();
     }, 200);
-  }
-
-  cleanup() {
-    const E = [
-      ['mousedown', this.mouseDown],
-      ['mousemove', this.mouseMove],
-      ['wheel', this.wheel, { passive: false }],
-      ['touchstart', this.touchStart],
-      ['touchmove', this.touchMove],
-      ['touchcancel', this.touchCancel],
-      ['touchend', this.touchEnd],
-    ];
-
-    E.forEach(([ev, fn, att]) => this.img?.removeEventListener(ev, fn, att || false));
-
-    if (this.persist !== true) {
-      const NAME = 'SharedImageEvents';
-      if (window[NAME]) {
-        window[NAME].MouseUp && document.removeEventListener('mouseup', window[NAME].MouseUp);
-        window[NAME].MouseLeave && document.removeEventListener('mouseleave', window[NAME].MouseLeave);
-        window[NAME].Resize && window.removeEventListener('resize', window[NAME].Resize);
-        delete window[NAME];
-      }
-    }
-
-    this.lightBox.touchMove = null;
-
-    clearTimeout(this.state.GropinTime);
-    clearTimeout(this.resizer);
-
-    this.reset({ ui: false });
-
-    if (this.zoomSlider) this.zoomSlider.oninput = null;
-    if (this.zoomMin) this.zoomMin.replaceWith(this.zoomMin.cloneNode(true));
-    if (this.zoomMax) this.zoomMax.replaceWith(this.zoomMax.cloneNode(true));
-    this.zoomSlider = this.zoomMin = this.zoomMax = null;
   }
 
   windowEvents() {
@@ -608,6 +555,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
         } else {
           this.lightBox.onclick = this.persist !== true ? null : this.lightBox._click;
         }
+
         return;
       }
 
@@ -644,9 +592,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
       window.addEventListener('resize', window[NAME].Resize);
     }, this.initDelay);
 
-    setTimeout(() => {
-      document.addEventListener('mouseup', window[NAME].MouseUp);
-    }, this.eventDelay);
+    setTimeout(() => document.addEventListener('mouseup', window[NAME].MouseUp), this.eventDelay);
   }
 
   mouseDown = (e) => {
@@ -671,21 +617,15 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.img.onclick = (e) => e.stopPropagation();
     this.lightBox.onclick = (e) => e.stopPropagation();
 
-    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions();
-    const deltaX = e.clientX - this.state.lastX;
-    const deltaY = e.clientY - this.state.lastY;
+    const { imgW, imgH, lightBoxW, lightBoxH } = this.dimensions(), deltaX = e.clientX - this.state.lastX, deltaY = e.clientY - this.state.lastY;
 
     if (this.state.scale <= this.MIN) {
       this.img.style.transition = 'transform .15s cubic-bezier(.3, .3, .1, 1)';
-      const moveX = e.clientX - this.state.lastX;
-      const moveY = e.clientY - this.state.lastY;
-      const snap = 50;
+      const snap = 50, moveX = e.clientX - this.state.lastX, moveY = e.clientY - this.state.lastY;
 
       if (!this.state.Axis) this.state.Axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
 
-      const X = this.state.Axis === 'x';
-      const offset = X ? 'offsetX' : 'offsetY';
-      const delta = X ? moveX : moveY;
+      const X = this.state.Axis === 'x', offset = X ? 'offsetX' : 'offsetY', delta = X ? moveX : moveY;
 
       this.state[offset] += delta;
       this.state[offset] = Math.max(Math.min(this.state[offset], snap), -snap);
@@ -722,6 +662,14 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     this.state.lastY = e.clientY;
   }
 
+  middleClick = (e) => {
+    if (e.button !== 1) return;
+    if (e.target !== this.lightBox && e.target !== this.img) return;
+
+    e.preventDefault();
+    this.close();
+  }
+
   wheel = (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -736,14 +684,10 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
 
     this.img.style.transition = 'transform .35s cubic-bezier(.3, .6, .6, 1)';
 
-    const CTRL = e.ctrlKey || e.metaKey;
-    const SHIFT = e.shiftKey;
-    const centerX = this.lightBox.offsetWidth / 2;
-    const centerY = this.lightBox.offsetHeight / 2;
+    const CTRL = e.ctrlKey || e.metaKey, SHIFT = e.shiftKey;
+    const centerX = this.lightBox.offsetWidth / 2, centerY = this.lightBox.offsetHeight / 2;
     const delta = Math.max(-1, Math.min(1, e.wheelDelta || -e.detail));
-    const step = 1.125;
-    const moveStep = 30 * this.state.scale;
-    const lastScale = this.state.scale;
+    const step = 1.125, moveStep = 30 * this.state.scale, lastScale = this.state.scale;
 
     if (!CTRL && !SHIFT) {
       if (delta > 0) {
@@ -975,7 +919,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     }
   }
 
-  addEvents() {
+  addEV() {
     this.lightBox.touchMove = (e) => {
       this.closeZoomList();
       if (e.target !== this.img) { e.stopPropagation(); e.preventDefault(); }
@@ -983,6 +927,7 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
 
     const E = [
       ['mousedown', this.mouseDown],
+      ['mousedown', this.middleClick],
       ['mousemove', this.mouseMove],
       ['wheel', this.wheel, { passive: false }],
       ['touchstart', this.touchStart],
@@ -992,5 +937,46 @@ L 4.454 7.499 C 4.067 7.499 3.751 7.815 3.751 8.202 L 3.751 12.421 C 3.751 12.80
     ];
 
     E.forEach(([ev, fn, att]) => this.img.addEventListener(ev, fn, att || false));
+
+    this.lightBox.addEventListener('mousedown', this.middleClick);
+  }
+
+  clearEV() {
+    const E = [
+      ['mousedown', this.mouseDown],
+      ['mousedown', this.middleClick],
+      ['mousemove', this.mouseMove],
+      ['wheel', this.wheel, { passive: false }],
+      ['touchstart', this.touchStart],
+      ['touchmove', this.touchMove],
+      ['touchcancel', this.touchCancel],
+      ['touchend', this.touchEnd],
+    ];
+
+    E.forEach(([ev, fn, att]) => this.img?.removeEventListener(ev, fn, att || false));
+
+    this.lightBox?.removeEventListener('mousedown', this.middleClick);
+
+    if (this.persist !== true) {
+      const NAME = 'SharedImageEvents';
+      if (window[NAME]) {
+        window[NAME].MouseUp && document.removeEventListener('mouseup', window[NAME].MouseUp);
+        window[NAME].MouseLeave && document.removeEventListener('mouseleave', window[NAME].MouseLeave);
+        window[NAME].Resize && window.removeEventListener('resize', window[NAME].Resize);
+        delete window[NAME];
+      }
+    }
+
+    this.lightBox.touchMove = null;
+
+    clearTimeout(this.state.GropinTime);
+    clearTimeout(this.resizer);
+
+    this.reset({ ui: false });
+
+    if (this.zoomSlider) this.zoomSlider.oninput = null;
+    if (this.zoomMin) this.zoomMin.replaceWith(this.zoomMin.cloneNode(true));
+    if (this.zoomMax) this.zoomMax.replaceWith(this.zoomMax.cloneNode(true));
+    this.zoomSlider = this.zoomMin = this.zoomMax = null;
   }
 }
