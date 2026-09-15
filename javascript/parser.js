@@ -196,8 +196,7 @@ function SharedPromptParser(t) {
 async function SharedModelsFetch(i, timeout = 60000) {
   const err = console.error;
   console.error = function(...args) {
-    const msg = args.toString();
-    if (msg) return;
+    const msg = args.toString(); if (msg) return;
     err.apply(console, args);
   };
 
@@ -234,17 +233,11 @@ async function SharedModelsFetch(i, timeout = 60000) {
             if (k.startsWith('embed:')) {
               const n = k.slice(6);
               HashesDict[n] = h;
-              if (!EmbedNames.has(n)) {
-                EmbedNames.add(n);
-                Cat.embed.push({ n, h });
-              }
+              !EmbedNames.has(n) && (EmbedNames.add(n), Cat.embed.push({ n, h }));
             } else if (k.startsWith('lora:')) {
               const n = k.slice(5);
               HashesDict[n] = h;
-              if (!LoraNames.has(n)) {
-                LoraNames.add(n);
-                Cat.lora.push({ n, h });
-              }
+              !LoraNames.has(n) && (LoraNames.add(n), Cat.lora.push({ n, h }));
             }
           }
         } catch (e) {
@@ -256,10 +249,7 @@ async function SharedModelsFetch(i, timeout = 60000) {
         const loraPairs = loraHashEX[1].split(',').map(pair => pair.trim());
         for (const p of loraPairs) {
           const [n, h] = p.split(':').map(x => x.trim());
-          if (h && !HashesDict[n] && !LoraNames.has(n)) {
-            LoraNames.add(n);
-            Cat.lora.push({ n, h });
-          }
+          h && !HashesDict[n] && !LoraNames.has(n) && (LoraNames.add(n), Cat.lora.push({ n, h }));
         }
       }
 
@@ -267,10 +257,7 @@ async function SharedModelsFetch(i, timeout = 60000) {
         const embedPairs = tiHashEX[1].split(',').map(pair => pair.trim());
         for (const p of embedPairs) {
           const [n, h] = p.split(':').map(x => x.trim());
-          if (h && !HashesDict[n] && !EmbedNames.has(n)) {
-            EmbedNames.add(n);
-            Cat.embed.push({ n, h });
-          }
+          h && !HashesDict[n] && !EmbedNames.has(n) && (EmbedNames.add(n), Cat.embed.push({ n, h }));
         }
       }
 
@@ -285,15 +272,17 @@ async function SharedModelsFetch(i, timeout = 60000) {
 
         const data = await r.json();
 
+        const M = 'sd-image-scripts-modeloutput';
         setTimeout(() => {
-          ['sd-image-scripts-modeloutput-label', 'sd-image-scripts-modeloutput-hashes'].forEach(C => {
-            document.querySelectorAll(`.${C}`).forEach(el =>
-              el.classList.add('sd-image-scripts-display')
-            );
+          [`${M}-label`, `${M}-hashes`].forEach(C => {
+            document.querySelectorAll(`.${C}`).forEach(el => el.classList.add('sd-image-scripts-display'));
           });
         }, 100);
 
-        return data.html;
+        return /Mobi|Android/i.test(navigator.userAgent)
+          ? data.html.replace('>checkpoint</div>', '>ckpt</div>')
+          : data.html;
+
       } catch (err) {
         console.error('Fetch failed', err);
         return '';
@@ -309,10 +298,7 @@ const SharedImageInfoReg = {},
 SharedImageInfo = (k, c) => SharedImageInfoReg[k] = c;
 
 async function SharedPlainTextToHTML(k, inputs) {
-  const P = 'sd-image-scripts',
-  outputDisplay = `${P}-display-output-panel`,
-  outputFail = `${P}-display-output-fail`,
-  columnOverflow = `${P}-column-overflow`,
+  const P = 'sd-image-scripts', v = SharedImageInfoReg[k], { outputDisplay, outputFail } = v.classes(),
 
   SharedImageInfoFallbacks = {
     prompt: 'Prompt', copy_prompt: 'Copy Prompt',
@@ -326,12 +312,11 @@ async function SharedPlainTextToHTML(k, inputs) {
     copy_seed: 'Copy Seed'
   },
 
-  v = SharedImageInfoReg[k],
   { SharedParserExtrasInfo: ExtrasInfo, SharedParserPostProcessingInfo: PostProcessingInfo,
     SharedParserEncryptInfo: EncryptInfo, SharedParserSha256Info: Sha256Info, SharedParserNaiSourceInfo: NaiSourceInfo,
   } = window,
 
-  { column, sendButton, outputPanel } = v.elements(),
+  { sendButton, outputPanel } = v.elements(),
 
   translate = (k) => v.translate(k, SharedImageInfoFallbacks[k] || k),
 
@@ -368,13 +353,11 @@ async function SharedPlainTextToHTML(k, inputs) {
   };
 
   if (!inputs?.trim() && !(window.SharedParserExtrasInfo?.trim() || window.SharedParserPostProcessingInfo?.trim())) {
-    column?.classList.remove(columnOverflow);
     outputPanel.classList.remove(outputDisplay, outputFail);
     sendButton.classList.remove(outputDisplay);
     return '';
   }
 
-  column?.classList.add(columnOverflow);
   outputPanel.classList.add(outputDisplay);
 
   if (inputs.trim().includes('Nothing To See Here') || inputs.trim().includes('Nothing To Read Here')) {

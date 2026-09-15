@@ -4,12 +4,30 @@
   --sd-img-scripts-modeloutput-bg-hover: rgb(255 255 255 / 50%);
   --sd-img-scripts-percent-shadow: 0 0 3px 0 var(--primary-400), inset 0 0 1px 1px var(--primary-400), inset 0 0 7px 0 var(--primary-400);
   --sd-img-scripts-percent-bg: rgb(235 235 235 / 85%);
+  --sd-img-scripts-o-f: #747474;
 }
 
 .dark {
   --sd-img-scripts-modeloutput-bg: rgb(0 0 0 / 40%);
   --sd-img-scripts-modeloutput-bg-hover: rgb(0 0 0 / 60%);
   --sd-img-scripts-percent-bg: rgb(18 18 18 / 80%);
+  --sd-img-scripts-o-f: #000;
+}
+
+:root,
+.dark {
+  --sd-img-scripts-sb-c-h: var(--background-fill-primary);
+  --sd-img-scripts-sb-bg-h: var(--primary-400);
+  --sd-img-scripts-sb-bs: 0 0 1px 1px #000, inset 0 0 16px 0 var(--input-background-fill), inset 0 0 6px 0 var(--input-background-fill);
+  --sd-img-scripts-sb-bs-h: 0 0 1px 1px #000, inset 0 0 16px 0 var(--background-fill-secondary), inset 0 0 6px 0 var(--background-fill-secondary);
+
+  --sd-img-scripts-cb-c-h: #fff;
+  --sd-img-scripts-cb-bg-h: red;
+  --sd-img-scripts-cb-bs: inset 0 0 10px 0 var(--input-background-fill), 0 0 1px 1px var(--background-fill-secondary), 0 0 10px 1px #000;
+  --sd-img-scripts-cb-bs-h: inset 0 0 10px 0 var(--background-fill-primary), 0 0 1px 1px var(--background-fill-secondary), 0 0 10px 1px #000;
+
+  --sd-img-scripts-img-mask: linear-gradient(to bottom, rgb(0 0 0 / 0%) 0%, rgb(0 0 0) 50%, rgb(0 0 0 / 0%) 100%);
+  --sd-img-scripts-op-mask: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .2) 0.5%, rgba(0, 0, 0, .5) 1%, rgba(0, 0, 0, .8) 1.5%, black 2%, black 98%, rgba(0, 0, 0, .8) 98.5%, rgba(0, 0, 0, .5) 99%, rgba(0, 0, 0, .2) 99.5%, transparent 100%);
 }
 
 /* ################################################################################################################################################################### */
@@ -29,8 +47,8 @@
   position: relative;
   overflow-wrap: break-word;
   height: 100%;
-  max-width: 100%;
-  gap: 1rem !important;
+  width: 100%;
+  gap: 22px !important;
 }
 
 #SD-Image-Scripts-Output.sd-image-scripts-default {
@@ -41,13 +59,13 @@
 }
 
 #SD-Image-Scripts-Output .sd-image-scripts-output-section {
-  color: var(--output-text-color);
   border: 0;
   margin: 0;
+  color: var(--output-text-color);
   background: transparent;
-  filter: drop-shadow(0 0 2px #000);
+  filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 4px var(--sd-img-scripts-o-f));
+  transition: .3s ease;
   cursor: default;
-  transition: .3s ease, filter 0s;
 }
 
 #SD-Image-Scripts-Output .sd-image-scripts-output-models-section {
@@ -59,27 +77,25 @@
   transition: .2s ease;
 }
 
-#SD-Image-Scripts-Output .sd-image-scripts-output-section:not(.sd-image-scripts-output-models-section):hover {
-  filter: drop-shadow(0 0 2px var(--primary-400)) drop-shadow(0 0 2px var(--primary-400));
-}
-
 #SD-Image-Scripts-Output .sd-image-scripts-output-title {
+  --a: var(--input-background-fill);
   display: flex;
+  justify-content: flex-start;
   position: relative;
   z-index: 2;
-  font-weight: bold;
-  cursor: default;
-  width: max-content;
-  font-size: 16px;
   text-align: center;
-  color: var(--primary-400);
-  justify-content: flex-start;
-  margin: 0;
+  font-weight: bold;
+  font-size: 16px;
+  width: max-content;
   border: 0;
   border-radius: 0.5rem 0.5rem 0 0;
-  padding: 4px 10px;
+  box-shadow: inset 0 0 10px 0 var(--a);
+  color: var(--primary-400);
   background: var(--input-background-fill);
+  margin: 0;
+  padding: 4px 10px;
   pointer-events: auto;
+  cursor: default;
   transition: .2s ease;
 }
 
@@ -88,9 +104,9 @@
 }
 
 #SD-Image-Scripts-Output .sd-image-scripts-copybutton:hover {
+  --a: var(--background-fill-secondary);
   color: var(--background-fill-primary);
   background: var(--primary-400);
-  box-shadow: 0 0 4px 0px var(--primary-400);
 }
 
 #SD-Image-Scripts-Output .sd-image-scripts-seed-button {
