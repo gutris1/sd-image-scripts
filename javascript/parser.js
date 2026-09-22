@@ -349,7 +349,7 @@ async function SharedPlainTextToHTML(k, inputs) {
     const empty = t === 'nothing', model = t === titles.models, wrapper = !empty && !model,
     text = wrapper ? `<div class='${P}-output-wrapper'><div class='${P}-output-content'>${c}</div></div>` : c,
     extra = model ? ` ${P}-output-models-section` : '';
-    return `<div class='${P}-output-section${extra}'${empty ? " style='height: 100%'" : ''}>${empty ? '' : t}${text}</div>`;
+    return `<div class='${P}-output-section${extra}${empty ? ' output-failed' : ''}'>${empty ? '' : t}${text}</div>`;
   };
 
   if (!inputs?.trim() && !(window.SharedParserExtrasInfo?.trim() || window.SharedParserPostProcessingInfo?.trim())) {
@@ -363,7 +363,7 @@ async function SharedPlainTextToHTML(k, inputs) {
   if (inputs.trim().includes('Nothing To See Here') || inputs.trim().includes('Nothing To Read Here')) {
     outputPanel.classList.add(outputFail);
     sendButton.classList.remove(outputDisplay);
-    const failContent = `<div class='${P}-output-failed' style='position: absolute; bottom: 0;'>${inputs}</div>`;
+    const failContent = `<div class='${P}-output-failed'>${inputs}</div>`;
     return createSection('nothing', failContent);
   }
 

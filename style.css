@@ -5,6 +5,7 @@
   --sd-img-scripts-percent-shadow: 0 0 3px 0 var(--primary-400), inset 0 0 1px 1px var(--primary-400), inset 0 0 7px 0 var(--primary-400);
   --sd-img-scripts-percent-bg: rgb(235 235 235 / 85%);
   --sd-img-scripts-o-f: #747474;
+  --sd-img-scripts-fail-bg: rgb(255 255 255 / 70%);
 }
 
 .dark {
@@ -12,6 +13,7 @@
   --sd-img-scripts-modeloutput-bg-hover: rgb(0 0 0 / 60%);
   --sd-img-scripts-percent-bg: rgb(18 18 18 / 80%);
   --sd-img-scripts-o-f: #000;
+  --sd-img-scripts-fail-bg: rgb(0 0 0 / 70%);
 }
 
 :root,
@@ -32,23 +34,14 @@
 
 /* ################################################################################################################################################################### */
 
-#SDHub-Gallery-Image-Info-SendButton.sd-image-scripts-display-output-panel,
-#SDImageInfo-SendButton.sd-image-scripts-display-output-panel {
-  opacity: 1;
-  transition: opacity .6s ease;
-  pointer-events: auto;
-}
-
-/* ################################################################################################################################################################### */
-
 #SD-Image-Scripts-Output {
   display: flex;
   flex-direction: column;
+  gap: 22px !important;
   position: relative;
   overflow-wrap: break-word;
   height: 100%;
   width: 100%;
-  gap: 22px !important;
 }
 
 #SD-Image-Scripts-Output.sd-image-scripts-default {
@@ -65,6 +58,27 @@
   background: transparent;
   filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 4px var(--sd-img-scripts-o-f));
   transition: .3s ease;
+  cursor: default;
+}
+
+.prose > .sd-image-scripts-output-section.output-failed {
+  height: 100%;
+  width: 100%;
+}
+
+.sd-image-scripts-output-section.output-failed > .sd-image-scripts-output-failed {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  width: 100%;
+  padding: 0 20px;
+  color: var(--body-text-color);
+  font-size: 16px;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--sd-img-scripts-fail-bg);
+  box-shadow: 0 0 7px 0 #696969, 0 0 1px 1px #00000033, inset 0 0 7px 0 #ffffff59;
+  pointer-events: auto;
   cursor: default;
 }
 
